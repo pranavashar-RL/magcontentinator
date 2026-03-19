@@ -240,16 +240,49 @@ def _gemini_analyze_sync(video_path: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def _analyze_video(video: dict, idx: int, total: int, emit: Callable) -> dict:
-    """Full pipeline for one video: Apify download → Gemini visual analysis.
-    Falls back to GPT-4o transcript analysis if download or Gemini fails.
+    """Full pipeline for one video: transcript fast-path → Apify+Gemini visual if no transcript.
+
+    Fast path (transcript from Stage A available): skip video download entirely,
+    go straight to GPT-4o transcript analysis (~2s vs ~90s per video).
+    Slow path (no transcript): Apify download → Gemini visual → GPT-4o fallback.
     """
     video_id = video.get("video_id", f"video_{idx}")
     tiktok_url = video.get("url") or video.get("download_url") or ""
     transcript = (video.get("transcript") or "").strip()
 
+    # ── Fast path: transcript already available from Stage A ──
+    if transcript:
+        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: analyzing transcript..."})
+        try:
+            resp = await openai_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{
+                    "role": "user",
+                    "content": f"{B1_TRANSCRIPT_PROMPT}\n\nTRANSCRIPT:\n{transcript}",
+                }],
+                temperature=0.1,
+                max_completion_tokens=3000,
+                timeout=60,
+            )
+            b1 = json.loads(resp.choices[0].message.content)
+            b1["_source"] = "gpt4o_transcript"
+            if not b1.get("full_transcript"):
+                b1["full_transcript"] = transcript
+
+            emit("progress", {
+                "stage": "B",
+                "message": f"Video {idx}/{total} ✓ — {b1.get('hook_type', '?')} / {b1.get('pain_point', '?')}",
+            })
+            return {**video, "b1": b1, "error": None}
+
+        except Exception as e:
+            logger.warning("Transcript analysis failed for %s: %s", video_id, e)
+            return {**video, "b1": None, "error": f"transcript_failed: {e}"}
+
+    # ── Slow path: no transcript — attempt Apify download + Gemini visual ──
     if not tiktok_url:
-        logger.warning("Video %s has no URL", video_id)
-        return {**video, "b1": None, "error": "no_url"}
+        logger.warning("Video %s has no URL and no transcript", video_id)
+        return {**video, "b1": None, "error": "no_url_no_transcript"}
 
     # ── Phase 1: Download via Apify ──
     async with APIFY_SEMAPHORE:
@@ -294,7 +327,7 @@ async def _analyze_video(video: dict, idx: int, total: int, emit: Callable) -> d
             })
             return {**video, "b1": b1, "error": None}
 
-    # ── Phase 2b: Transcript fallback (GPT-4o) ──
+    # ── Phase 2b: no transcript, download failed — nothing to analyze ──
     try:
         os.unlink(tmp_path)
     except OSError:
