@@ -139,6 +139,16 @@ async def generate(job_id: str, req: GenerateRequest, background_tasks: Backgrou
     return {"status": "generating"}
 
 
+@app.post("/api/skip-to-transcripts/{job_id}")
+async def skip_to_transcripts(job_id: str):
+    """User hit the 'use transcripts' skip button — flag the job to use transcript mode."""
+    job = get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    job["use_transcripts"] = True
+    return {"status": "ok"}
+
+
 @app.post("/api/regen/{job_id}/{brief_num}")
 async def regen(
     job_id: str,

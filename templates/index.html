@@ -455,14 +455,15 @@ function _scheduleSkipButton() {
     if (!isDone) document.getElementById('skipBtn').style.display = '';
   }, 45000);
 }
-function skipToGenerate() {
+async function skipToGenerate() {
   document.getElementById('skipBtn').style.display = 'none';
   if (_skipBtnTimer) { clearTimeout(_skipBtnTimer); _skipBtnTimer = null; }
-  // Treat as if preflight completed — enable generate button
-  document.getElementById('rdot').classList.add('done');
-  updateRibbon('Skipped — using transcript analysis');
-  setRibbonDone();
-  showToast('Proceeding with transcripts already collected');
+  updateRibbon('Switching to transcript analysis…');
+  // Tell the server to use transcript mode for this job
+  if (jobId) {
+    try { await fetch(`/api/skip-to-transcripts/${jobId}`, {method:'POST'}); } catch(_) {}
+  }
+  showToast('Switched to transcript analysis');
 }
 
 // ── Screen 2 transition — calls /api/start ─────────────────────────────
