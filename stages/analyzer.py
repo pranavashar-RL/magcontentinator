@@ -197,8 +197,79 @@ async def analyze_video(video: dict, idx: int, total: int, emit: Callable) -> di
     return {**video, "b1": b1, "b2": b2, "error": None}
 
 
+_DOWNLOAD_SEMAPHORE = asyncio.Semaphore(5)  # download all fast while URLs are fresh
+
+
+async def _download_video(video: dict, idx: int, total: int, emit: Callable):
+    """Download one video bytes; returns (video_dict, bytes_or_None)."""
+    video_id = video.get("video_id", f"video_{idx}")
+    download_url = video.get("download_url") or video.get("url") or ""
+    if not download_url:
+        logger.warning("Video %s has no download URL", video_id)
+        return video, None
+
+    async with _DOWNLOAD_SEMAPHORE:
+        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: downloading..."})
+        try:
+            async with httpx.AsyncClient(timeout=60, follow_redirects=True) as http:
+                resp = await http.get(
+                    download_url,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; Magcontentinator)"},
+                )
+                resp.raise_for_status()
+                return video, resp.content
+        except Exception as e:
+            logger.warning("Download failed for %s: %s | url=%s", video_id, e, download_url[:80])
+            return video, None
+
+
+async def _analyze_bytes(video: dict, video_bytes: bytes, idx: int, total: int, emit: Callable) -> dict:
+    """Run Gemini B1 + GPT B2 on already-downloaded video bytes."""
+    video_id = video.get("video_id", f"video_{idx}")
+    apify_transcript = video.get("transcript") or ""
+    size_kb = len(video_bytes) // 1024
+
+    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: {size_kb}KB — uploading to Gemini..."})
+
+    async with GEMINI_SEMAPHORE:
+        try:
+            loop = asyncio.get_event_loop()
+            b1 = await asyncio.wait_for(
+                loop.run_in_executor(None, _gemini_analyze_sync, video_bytes, apify_transcript),
+                timeout=180,
+            )
+            del video_bytes
+        except Exception as e:
+            logger.warning("B1 Gemini failed for %s: %s", video_id, e)
+            del video_bytes
+            return {**video, "b1": None, "b2": None, "error": f"b1_failed: {e}"}
+
+    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: Gemini done. Extracting patterns..."})
+
+    try:
+        b2_resp = await openai_client.chat.completions.create(
+            model="gpt-5.4",
+            messages=[
+                {"role": "system", "content": B2_SYSTEM},
+                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2)[:4000])},
+            ],
+            temperature=0.2,
+            timeout=60,
+        )
+        b2 = _parse_json(b2_resp.choices[0].message.content)
+    except Exception as e:
+        logger.warning("B2 GPT failed for %s: %s", video_id, e)
+        return {**video, "b1": b1, "b2": None, "error": f"b2_failed: {e}"}
+
+    emit("progress", {
+        "stage": "B",
+        "message": f"Video {idx}/{total} done — {b2.get('hook_type', '?')} / {b2.get('pain_point', '?')}",
+    })
+    return {**video, "b1": b1, "b2": b2, "error": None}
+
+
 async def run(job: dict, emit: Callable) -> None:
-    """Stage B: analyze videos in parallel batches of 2 (semaphore-bounded)."""
+    """Stage B: download all in parallel (5 concurrent), then Gemini 2 at a time."""
     videos = job.get("videos", [])
     if not videos:
         emit("progress", {"stage": "B", "message": "No videos to analyze.", "done": True})
@@ -206,11 +277,36 @@ async def run(job: dict, emit: Callable) -> None:
         return
 
     total = len(videos)
-    emit("progress", {"stage": "B", "message": f"Starting Gemini analysis of {total} videos (2 at a time)..."})
+    emit("progress", {"stage": "B", "message": f"Downloading {total} videos simultaneously..."})
 
-    tasks = [analyze_video(video, i + 1, total, emit) for i, video in enumerate(videos)]
-    results = await asyncio.gather(*tasks)
+    # Phase 1: download all in parallel while CDN URLs are still fresh
+    download_tasks = [_download_video(v, i + 1, total, emit) for i, v in enumerate(videos)]
+    downloaded = await asyncio.gather(*download_tasks)
 
+    n_dl = sum(1 for _, b in downloaded if b is not None)
+    emit("progress", {"stage": "B", "message": f"{n_dl}/{total} downloaded. Starting Gemini analysis (2 at a time)..."})
+
+    # Phase 2: Gemini + GPT on downloaded bytes, 2 at a time
+    analyze_tasks = []
+    results_passthrough = []
+    for i, (video, video_bytes) in enumerate(downloaded):
+        if video_bytes is None:
+            results_passthrough.append((i, {**video, "b1": None, "b2": None, "error": "download_failed"}))
+        else:
+            analyze_tasks.append((i, _analyze_bytes(video, video_bytes, i + 1, total, emit)))
+
+    analyzed_results = await asyncio.gather(*[t for _, t in analyze_tasks], return_exceptions=True)
+
+    # Reconstruct in original order
+    result_map = {i: v for i, v in results_passthrough}
+    for (i, _), result in zip(analyze_tasks, analyzed_results):
+        if isinstance(result, Exception):
+            video = downloaded[i][0]
+            result_map[i] = {**video, "b1": None, "b2": None, "error": str(result)}
+        else:
+            result_map[i] = result
+
+    results = [result_map[i] for i in range(len(videos))]
     job["analyzed_videos"] = results
     successful = sum(1 for r in results if not r.get("error"))
     emit("progress", {
