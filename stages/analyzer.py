@@ -52,6 +52,21 @@ B1_PROMPT = """Analyze this TikTok video beat by beat. Return ONLY valid JSON ma
 For product_integration: use "first_appearance" when product is first shown, "on_screen" for subsequent appearances, null otherwise.
 Capture every beat. Be extremely precise about audio (verbatim words). Return only JSON, no markdown."""
 
+B1_TRANSCRIPT_PROMPT = """You are analyzing a TikTok video transcript for content strategy research.
+Given this transcript, produce a beat-by-beat analysis inferring structure from the text.
+Return ONLY valid JSON matching this exact schema:
+{
+  "duration_seconds": null,
+  "beat_count": <int>,
+  "beats": [
+    {"time": "0-3s", "beat_num": 1, "action": "<inferred context>", "text_overlay": null, "audio": "<verbatim from transcript>", "product_integration": null}
+  ],
+  "hook_text": "<opening line verbatim>",
+  "transcript": "<full verbatim transcript>"
+}
+For product_integration: use "first_appearance" when product is first mentioned, "on_screen" for subsequent mentions, null otherwise.
+Split the transcript into logical beats (topic shifts, pauses, new points). Return only JSON, no markdown."""
+
 B2_SYSTEM = """You are a TikTok content analyst for supplement brands.
 Given a beat-by-beat video analysis, extract content patterns.
 Return ONLY valid JSON. No markdown, no explanation."""
@@ -180,7 +195,7 @@ async def analyze_video(video: dict, idx: int, total: int, emit: Callable) -> di
             model="gpt-5.4",
             messages=[
                 {"role": "system", "content": B2_SYSTEM},
-                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2)[:4000])},
+                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2))},
             ],
             temperature=0.2,
             timeout=60,
@@ -251,7 +266,7 @@ async def _analyze_bytes(video: dict, video_bytes: bytes, idx: int, total: int, 
             model="gpt-5.4",
             messages=[
                 {"role": "system", "content": B2_SYSTEM},
-                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2)[:4000])},
+                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2))},
             ],
             temperature=0.2,
             timeout=60,
@@ -264,6 +279,56 @@ async def _analyze_bytes(video: dict, video_bytes: bytes, idx: int, total: int, 
     emit("progress", {
         "stage": "B",
         "message": f"Video {idx}/{total} done — {b2.get('hook_type', '?')} / {b2.get('pain_point', '?')}",
+    })
+    return {**video, "b1": b1, "b2": b2, "error": None}
+
+
+async def _analyze_transcript_only(video: dict, idx: int, total: int, emit: Callable) -> dict:
+    """Fallback: when video can't be downloaded, analyze transcript via GPT."""
+    video_id = video.get("video_id", f"video_{idx}")
+    transcript = video.get("transcript", "").strip()
+    if not transcript:
+        return {**video, "b1": None, "b2": None, "error": "download_failed_no_transcript"}
+
+    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: no download — using transcript fallback..."})
+
+    try:
+        b1_resp = await openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "user", "content": f"{B1_TRANSCRIPT_PROMPT}\n\nTRANSCRIPT:\n{transcript}"},
+            ],
+            temperature=0.1,
+            max_completion_tokens=2000,
+            timeout=60,
+        )
+        b1 = _parse_json(b1_resp.choices[0].message.content)
+        # Ensure transcript field is populated
+        if not b1.get("transcript"):
+            b1["transcript"] = transcript
+    except Exception as e:
+        logger.warning("B1 transcript fallback failed for %s: %s", video_id, e)
+        return {**video, "b1": None, "b2": None, "error": f"transcript_b1_failed: {e}"}
+
+    # B2 pattern extraction — same as video path
+    try:
+        b2_resp = await openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": B2_SYSTEM},
+                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2))},
+            ],
+            temperature=0.2,
+            timeout=60,
+        )
+        b2 = _parse_json(b2_resp.choices[0].message.content)
+    except Exception as e:
+        logger.warning("B2 GPT failed for %s: %s", video_id, e)
+        return {**video, "b1": b1, "b2": None, "error": f"b2_failed: {e}"}
+
+    emit("progress", {
+        "stage": "B",
+        "message": f"Video {idx}/{total} done (transcript) — {b2.get('hook_type', '?')} / {b2.get('pain_point', '?')}",
     })
     return {**video, "b1": b1, "b2": b2, "error": None}
 
@@ -291,14 +356,15 @@ async def run(job: dict, emit: Callable) -> None:
     results_passthrough = []
     for i, (video, video_bytes) in enumerate(downloaded):
         if video_bytes is None:
-            results_passthrough.append((i, {**video, "b1": None, "b2": None, "error": "download_failed"}))
+            # Fallback: transcript-only analysis if transcript available
+            analyze_tasks.append((i, _analyze_transcript_only(video, i + 1, total, emit)))
         else:
             analyze_tasks.append((i, _analyze_bytes(video, video_bytes, i + 1, total, emit)))
 
     analyzed_results = await asyncio.gather(*[t for _, t in analyze_tasks], return_exceptions=True)
 
     # Reconstruct in original order
-    result_map = {i: v for i, v in results_passthrough}
+    result_map = {}
     for (i, _), result in zip(analyze_tasks, analyzed_results):
         if isinstance(result, Exception):
             video = downloaded[i][0]
