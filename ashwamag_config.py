@@ -271,6 +271,78 @@ CONTENT STRATEGY RULES (data-validated from $1.73M GMV library):
 8. DOMINANT COMBO: relatable_callout × problem_solution = $580K GMV across 112 videos. The default.
 """
 
+LIBRARY_RATIONALE = {
+    "sleep": {
+        "why_it_converts": "Immediate relatable pain — 'brain won't shut off at 2AM' is universal. High purchase urgency because the pain is felt nightly. $593K GMV across 58 videos confirms this is the #1 AshwaMag pain point.",
+        "proof_elements_that_work": ["sleep tracker screenshot showing improvement", "beadlet close-up (visual proof of delivery)", "COA/lab results as PIP insert"],
+        "anti_patterns": ["generic 'better sleep' claim without personal stake", "clinical insomnia treatment framing", "cortisol face/belly language"],
+    },
+    "brain_fog": {
+        "why_it_converts": "Brain fog has the highest avg GMV per video ($17,887) despite fewer videos — the audience is highly purchase-motivated. Credibility claim + mechanism explanation converts best.",
+        "proof_elements_that_work": ["focus/productivity comparison", "ingredient label close-up", "beadlet demonstration showing delivery"],
+        "anti_patterns": ["vague 'sharpen your mind' language without mechanism", "disease-adjacent cognitive claims"],
+    },
+    "stress_cortisol": {
+        "why_it_converts": "KSM-66 ashwagandha has growing consumer recognition — naming it builds instant credibility. Large GMV volume ($268K) across 67 videos shows breadth of appeal.",
+        "proof_elements_that_work": ["mood journal or tracker comparison", "COA showing KSM-66 standardization", "before/after lifestyle visual"],
+        "anti_patterns": ["cortisol face/belly imagery (BANNED)", "stress = weight gain framing (BANNED)", "direct cortisol reduction claim (makes it a drug claim)", "anxiety treatment language"],
+    },
+    "low_energy": {
+        "why_it_converts": "Blue-collar and working-parent audience — practical energy framing over wellness language. 2PM crash is the specific hook that resonates.",
+        "proof_elements_that_work": ["day-in-the-life context showing demanding schedule", "energy level comparison", "no caffeine needed contrast"],
+        "anti_patterns": ["aspirational wellness framing — this audience rejects it", "luxury product positioning"],
+    },
+    "muscle_recovery": {
+        "why_it_converts": "Fitness audience is supplement-savvy — naming specific forms (malate, taurate) signals quality. Cramp relief has immediate emotional resonance.",
+        "proof_elements_that_work": ["workout context video", "specific form label close-up", "cramp reenactment or anecdote"],
+        "anti_patterns": ["generic 'muscle support' without naming specific forms", "body composition angle (BANNED)"],
+    },
+    "pms_hormones": {
+        "why_it_converts": "High emotional stakes, monthly urgency, female-specific audience. Validation + practical solution framing converts better than clinical language.",
+        "proof_elements_that_work": ["period tracking app screenshot", "relatable monthly struggle reenactment", "consumption ritual (showing daily habit)"],
+        "anti_patterns": ["hormonal imbalance treatment claims (BANNED)", "disease-adjacent framing"],
+    },
+    "general_wellness": {
+        "why_it_converts": "Lowest avg GMV ($2,833) — this pain point needs a strong differentiator to convert. Beadlet technology as proof of quality is the strongest angle.",
+        "proof_elements_that_work": ["beadlet close-up as main visual", "ingredient comparison vs single-form competitors", "COA/lab certification callout"],
+        "anti_patterns": ["generic supplement content — needs specific differentiator to stand out"],
+    },
+}
+
+COMBO_RATIONALE = {
+    "relatable_callout × problem_solution": {
+        "why": "Opens with shared struggle the viewer instantly recognizes → names the mechanism → shows resolution. Highest trust arc. $580K GMV across 112 videos is the dominant proof.",
+        "who_it_works_for": ["wellness_lifestyle", "ugc_authentic", "direct_commerce", "blue_collar_rural", "reaction_story"],
+        "execution_note": "The relatable callout must be specific (not 'can't sleep' but 'lying awake at 2AM running through tomorrow's to-do list'). Generic callouts underperform.",
+        "what_not_to_do": "Don't skip the problem beat — jumping straight to solution feels like an ad. The shared struggle is what earns the right to recommend.",
+    },
+    "bold_claim × problem_solution": {
+        "why": "Authority assertion that demands attention. $118K GMV across 24 videos — strong avg GMV/video. Works best when the claim is specific and defensible.",
+        "who_it_works_for": ["medical_authority", "fitness", "direct_commerce"],
+        "execution_note": "Bold claim must be grounded immediately (within the same sentence or the next beat) — floating claims invite skepticism.",
+        "what_not_to_do": "Don't use bold_claim without supporting credential or data. Unsupported bold claims feel like ads.",
+    },
+    "controversial_take × problem_solution": {
+        "why": "Highest avg GMV per video ($19,219 across 6 videos) — the most selective but most powerful combo. Requires genuine expert credibility to execute.",
+        "who_it_works_for": ["medical_authority"],
+        "execution_note": "The controversial take must be defensible and specific (e.g., 'Most sleep supplements you're buying are basically useless magnesium oxide'). Vague controversy doesn't convert.",
+        "what_not_to_do": "Don't attempt controversial_take with non-expert creators — it backfires without credential backing.",
+    },
+    "before_after × problem_solution": {
+        "why": "$126K GMV across 9 videos — transformation proof drives high conversion. Visual proof (tracker, photos, comparison) is essential.",
+        "who_it_works_for": ["wellness_lifestyle", "fitness", "ugc_authentic"],
+        "execution_note": "The transformation must be specific and attributable to consistent use, not a single dose. Timeline matters (e.g., 'after 3 weeks').",
+        "what_not_to_do": "Don't imply instant or dramatic transformation — sets unrealistic expectations and risks compliance issues.",
+    },
+    "personal_story × testimonial": {
+        "why": "$39K GMV but consistent avg — authenticity arc where creator's personal experience becomes the social proof. Strongest for UGC/authentic archetypes.",
+        "who_it_works_for": ["ugc_authentic", "wellness_lifestyle", "reaction_story"],
+        "execution_note": "The story must have a specific moment ('the first morning I didn't hit snooze in months') — vague testimonials underperform.",
+        "what_not_to_do": "Don't use personal_story framing with direct_commerce or medical_authority archetypes — it undermines their brand.",
+    },
+}
+
+
 def get_archetype_group(archetype: str) -> str:
     """Map a creator archetype to its group."""
     archetype_lower = archetype.lower().replace(" ", "_")
@@ -321,13 +393,14 @@ def build_library_context(archetype: str, brief_num: int = 1) -> str:
     """Build a library context string for injection into system prompts."""
     intel = get_library_intel(archetype, brief_num)
     pain = intel["pain_point_data"]
+    pain_key = intel["pain_point"]
+    combo = intel["combo"]
 
-    return f"""
-LIBRARY INTELLIGENCE (from $1.73M GMV validated dataset):
+    base = f"""LIBRARY INTELLIGENCE (from $1.73M GMV validated dataset):
 
 BRIEF {brief_num} ASSIGNMENT:
-- Pain Point: {intel["pain_point"].replace("_", " ").title()} (${intel["pain_total_gmv"]:,} total GMV, {pain["n_videos"]} videos, ${intel["pain_avg_gmv"]:,} avg)
-- Combo: {intel["combo"]} (${intel["combo_gmv"]:,} total GMV)
+- Pain Point: {pain_key.replace("_", " ").title()} (${intel["pain_total_gmv"]:,} total GMV, {pain["n_videos"]} videos, ${intel["pain_avg_gmv"]:,} avg)
+- Combo: {combo} (${intel["combo_gmv"]:,} total GMV)
 - Archetype Group: {intel["archetype_group"].replace("_", " ").title()}
 
 KEY INGREDIENTS FOR THIS PAIN POINT:
@@ -340,5 +413,24 @@ HOOKS THAT CONVERT:
 {chr(10).join(f"- {hook}" for hook in pain["hooks_that_convert"])}
 
 VISUAL PROOF ELEMENTS (use at least one):
-{chr(10).join(f"- {v}" for v in pain["visual_proof"])}
-""".strip()
+{chr(10).join(f"- {v}" for v in pain["visual_proof"])}"""
+
+    # Improvement 5: inject rationale for why this pain point + combo converts
+    pain_rationale = LIBRARY_RATIONALE.get(pain_key, {})
+    if pain_rationale:
+        base += f"\n\nWHY THIS PAIN POINT CONVERTS: {pain_rationale.get('why_it_converts', '')}"
+        anti = pain_rationale.get("anti_patterns", [])
+        if anti:
+            base += f"\nAVOID THESE PATTERNS: {', '.join(anti)}"
+
+    combo_rationale = COMBO_RATIONALE.get(combo, {})
+    if combo_rationale:
+        base += f"\n\nWHY THIS COMBO WORKS: {combo_rationale.get('why', '')}"
+        exec_note = combo_rationale.get("execution_note", "")
+        if exec_note:
+            base += f"\nEXECUTION NOTE: {exec_note}"
+        what_not = combo_rationale.get("what_not_to_do", "")
+        if what_not:
+            base += f"\nDO NOT: {what_not}"
+
+    return base.strip()

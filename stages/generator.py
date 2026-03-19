@@ -8,13 +8,61 @@ from typing import Callable, Optional
 from openai import AsyncOpenAI
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from ashwamag_config import FORMULATION, CONTENT_STRATEGY_RULES, VALID_CLAIMS, BANNED_ANGLES, BANNED_PHRASES
+from ashwamag_config import (
+    FORMULATION, CONTENT_STRATEGY_RULES, VALID_CLAIMS, BANNED_ANGLES, BANNED_PHRASES,
+    ARCHETYPE_GROUPS, get_archetype_group,
+)
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 GPT_GEN_MODEL = "gpt-5.4"
 GPT_SCORE_MODEL = "gpt-4o"
+
+ARCHETYPE_CONSTRAINTS = {
+    "medical_authority": {
+        "required": "Lead with clinical evidence, credentials, or mechanism explanation. Use precise medical/pharmacological language. Establish expertise in first 3 seconds.",
+        "hook_styles": "controversial_take, bold_claim, or authority_intro — never pure relatable_callout without credential grounding",
+        "forbidden": "Vague wellness language without mechanism. 'This supplement changed my life' framing.",
+        "cta_style": "Professional, links to personal credibility. 'As a pharmacist/nurse/doctor, this is what I'd recommend...' or similar.",
+    },
+    "wellness_lifestyle": {
+        "required": "Lead with personal story, transformation, or relatable shared struggle. Emphasize experiential authenticity. Make it feel like a recommendation from a trusted friend.",
+        "hook_styles": "relatable_callout, personal_story, or before_after",
+        "forbidden": "authority_intro without personal stake. Clinical language without warmth. Hard sell framing.",
+        "cta_style": "Conversational, feels organic and genuine. Never pushy or corporate.",
+    },
+    "fitness": {
+        "required": "Lead with performance metric, physical result, or athletic context. High energy, fast pace. Emphasize tangible results.",
+        "hook_styles": "bold_claim, before_after, or relatable_callout with performance framing",
+        "forbidden": "Slow narrative openers. Wellness/lifestyle language without performance angle.",
+        "cta_style": "Direct, action-oriented, fast. Performance or recovery angle on the CTA.",
+    },
+    "direct_commerce": {
+        "required": "Lead with value, comparison, or deal framing. Show product visually early. Emphasize ROI vs alternatives.",
+        "hook_styles": "comparison, relatable_callout, or social_proof_callout",
+        "forbidden": "Slow authority_intro. Long narrative without product. Abstract wellness claims.",
+        "cta_style": "Urgent, specific, deal-focused. Include price anchor or comparison.",
+    },
+    "ugc_authentic": {
+        "required": "Authentic personal testimony. Unscripted energy. Own experience must be central, not general claims.",
+        "hook_styles": "personal_story, relatable_callout, or before_after",
+        "forbidden": "Expert positioning without credential. Corporate or scripted tone.",
+        "cta_style": "Genuine personal recommendation. 'I literally just ordered another...' style.",
+    },
+    "blue_collar_rural": {
+        "required": "Grounded, practical, working-person context. Energy depletion and recovery angle strongest. No wellness-speak.",
+        "hook_styles": "relatable_callout, personal_story, or bold_claim with work context",
+        "forbidden": "Wellness lifestyle framing. Aspirational tone. Anything that feels luxury or premium.",
+        "cta_style": "Simple, direct, value-focused. Time-pressed worker who needs to get back to work.",
+    },
+    "reaction_story": {
+        "required": "Reaction or narrative format. Story arc must be clear and engaging. Humor or surprise acceptable.",
+        "hook_styles": "relatable_callout, personal_story, or negative_framing",
+        "forbidden": "Dry educational format. Pure product demo without story.",
+        "cta_style": "Conversational story close. Natural segue from narrative to recommendation.",
+    },
+}
 
 BRIEF_TYPES = {
     1: "gmv_max",
@@ -39,15 +87,18 @@ OUTPUT FORMAT — return ONLY a single valid JSON object with these exact fields
   "combo": "<hook_type × narrative_type>",
   "beats": [
     {
-      "time": "<e.g. 0-4s>",
-      "beat_num": <integer>,
+      "beat_num": <integer starting at 1>,
+      "beat_type": "<REQUIRED: hook|problem|solution|proof|cta>",
+      "time_range": "<e.g. 0-5s — must sum to 55-65s total>",
       "action": "<precise camera direction and physical action — what creator does, how they move, shot type, any props used, jump cuts>",
-      "script": "<VERBATIM words the creator speaks in this beat — full sentences, their exact voice, nothing paraphrased>",
+      "script": "<VERBATIM words the creator speaks in this beat — full sentences, their exact voice, nothing paraphrased, ~20-30 words>",
       "text_overlay": "<exact on-screen text including any emoji, capitalization style — or null>",
       "music": "<background music/sound cue or transition sound — or null>",
       "product_integration": <null | "first_appearance" | "on_screen" | "demo" | "verbal_only">
     }
   ],
+  "total_beats": <REQUIRED integer: 4, 5, or 6>,
+  "estimated_duration": "<REQUIRED: must be 55-65s, e.g. '60s'>",
   "full_script": "<the complete verbatim script end to end — every word the creator says from hook to CTA, as one block of text>",
   "narrative_flow": "<2-3 sentence summary of the complete narrative arc — how it opens, builds, and closes>",
   "total_duration": "<e.g. 60-65s>",
@@ -56,7 +107,9 @@ OUTPUT FORMAT — return ONLY a single valid JSON object with these exact fields
   "cta": "<exact verbatim CTA line the creator says at the end>",
   "production_notes": "<1 paragraph of practical production direction: where to film, what to wear, exact props needed, camera setup, editing style, text overlay style — everything a creator needs to shoot this without asking a single question>",
   "why_this_works": "<2-3 sentence rationale grounded in library GMV data and creator fit — name the combo, name the data>",
-  "adoption_pct": "<estimated % of creators in this archetype group who can execute this format>"
+  "adoption_pct": "<estimated % of creators in this archetype group who can execute this format>",
+  "signature_phrases_used": ["<phrase 1 from voice profile used in script>", "<phrase 2 from voice profile used in script>"],
+  "validation_passed": <true — required: confirms compliance checklist was run>
 }
 
 CRITICAL RULES FOR SCRIPT WRITING:
@@ -140,30 +193,49 @@ def _build_system_prompt(brief_num: int, job: dict) -> str:
             f"- Archetype confidence: {profile.get('archetype_confidence', 0.0):.0%}"
         )
 
-    # 4. Voice fingerprint
+    # 4. Voice fingerprint (Improvement 1: fix field key mismatches + inject examples as hard constraints)
     if voice:
         voice_lines = []
         for key, label in [
             ("tone", "Tone"),
             ("vocabulary_level", "Vocabulary"),
-            ("energy", "Energy"),
-            ("delivery_style", "Delivery style"),
-            ("pacing", "Pacing"),
-            ("humor_style", "Humor style"),
+            ("speaking_pace", "Pacing"),          # was "pacing" — FIXED
+            ("hook_style", "Hook style"),          # was missing — ADDED
+            ("cta_style", "CTA style"),            # was missing — ADDED
+            ("educational_style", "Educational style"),  # was missing — ADDED
         ]:
             val = voice.get(key)
             if val:
                 voice_lines.append(f"- {label}: {val}")
+
         sig_phrases = voice.get("signature_phrases") or []
         if sig_phrases:
-            voice_lines.append(f"- Signature phrases: {', '.join(sig_phrases)}")
-        do_list = voice.get("do") or []
-        dont_list = voice.get("dont") or []
-        if do_list:
-            voice_lines.append(f"- DO (voice rules): {', '.join(do_list)}")
-        if dont_list:
-            voice_lines.append(f"- DON'T (voice rules): {', '.join(dont_list)}")
-        voice_block = "CREATOR VOICE FINGERPRINT:\n" + "\n".join(voice_lines)
+            phrases_formatted = "\n".join(f'  * "{p}"' for p in sig_phrases)
+            voice_lines.append(
+                f"- Signature phrases (YOU MUST USE AT LEAST 2 OF THESE IN THE SCRIPT):\n{phrases_formatted}"
+            )
+
+        avoid_list = voice.get("avoid") or []   # was "dont" — FIXED
+        if avoid_list:
+            voice_lines.append(f"- AVOID these voice patterns: {', '.join(avoid_list)}")
+
+        auth_markers = voice.get("authenticity_markers") or []  # was missing — ADDED
+        if auth_markers:
+            voice_lines.append(f"- Authenticity markers (what makes them sound real): {', '.join(auth_markers)}")
+
+        voice_block = "CREATOR VOICE — YOU MUST MATCH THIS EXACTLY:\n" + "\n".join(voice_lines)
+
+        # Voice examples as hard structural constraints
+        example_hook = voice.get("example_hook_in_their_voice", "")
+        example_cta = voice.get("example_cta_in_their_voice", "")
+        if example_hook or example_cta:
+            voice_block += "\n\nVOICE EXAMPLES — YOUR WRITING MUST SOUND LIKE THESE:"
+            if example_hook:
+                voice_block += f'\nHook example (match this style, energy, vocabulary): "{example_hook}"'
+                voice_block += "\nThe brief's hook MUST match the style of the hook example above."
+            if example_cta:
+                voice_block += f'\nCTA example (match this style): "{example_cta}"'
+                voice_block += "\nThe brief's CTA MUST match the style of the CTA example above."
     else:
         voice_block = "CREATOR VOICE FINGERPRINT: Not available — use archetype defaults."
 
@@ -179,6 +251,18 @@ def _build_system_prompt(brief_num: int, job: dict) -> str:
         inspiration_block = f"INSPIRATION DIGEST (adapt these angles for this creator):\n{inspiration_digest}"
     else:
         inspiration_block = "INSPIRATION DIGEST: None provided."
+
+    # 5b. Archetype-specific constraints (Improvement 3)
+    archetype = profile.get("archetype", "everyday_consumer")
+    archetype_group = get_archetype_group(archetype)
+    constraints = ARCHETYPE_CONSTRAINTS.get(archetype_group, ARCHETYPE_CONSTRAINTS["ugc_authentic"])
+    archetype_block = (
+        f"ARCHETYPE CONSTRAINTS FOR THIS CREATOR ({archetype} / group: {archetype_group}):\n"
+        f"- Required approach: {constraints['required']}\n"
+        f"- Hook styles that work: {constraints['hook_styles']}\n"
+        f"- FORBIDDEN: {constraints['forbidden']}\n"
+        f"- CTA style: {constraints['cta_style']}"
+    )
 
     # 7. AshwaMag compliance rules
     banned_angles_list = ", ".join(sorted(BANNED_ANGLES))
@@ -196,17 +280,44 @@ VALID CLAIMS ONLY — every product claim must come from this list:
 
 Structure/function language ONLY. No disease claims. No medical treatment claims."""
 
+    # 7b. Beat structure rules (Improvement 2)
+    beat_structure_block = """BEAT STRUCTURE RULES — REQUIRED:
+- total_beats MUST be 4, 5, or 6. Never fewer than 4, never more than 6.
+- Beat order: hook → [problem] → solution → [proof] → cta
+  * hook (REQUIRED): 4-6s — the scroll-stop opening moment
+  * problem (optional): 8-12s — the pain point addressed
+  * solution (REQUIRED): 10-15s — how AshwaMag addresses it
+  * proof (REQUIRED): 8-12s — transformation evidence, COA, beadlet demo, or social proof
+  * cta (REQUIRED): 5-8s — specific call to action with urgency
+- Each beat script: ~20-30 words = ~4-6 seconds of speech
+- Total video: 55-65 seconds — never shorter, never longer
+- Product MUST appear by beat 3 (solution beat) at latest
+- product_integration type: use "first_appearance" only once per brief"""
+
     # 8. Content strategy rules
     strategy_block = CONTENT_STRATEGY_RULES.strip()
 
-    # 9. Chain-of-thought instructions
+    # 9. Chain-of-thought + validation checklist (Improvements 4)
     cot_block = """BEFORE WRITING THE BRIEF — think step by step:
 1. What pain point hooks this creator's specific audience? (consider their archetype and dominant themes)
 2. What hook technique fits their voice fingerprint? (match their energy, tone, vocabulary)
 3. What are the exact first 3 seconds? (the scroll-stop moment — be very specific)
 4. How does the product appear naturally without feeling forced? (choose a beat, make it organic)
 5. What transformation proof closes the loop? (the 'before → after' or 'reason why it works' moment)
-Only after thinking through all 5 steps, write the brief."""
+Only after thinking through all 5 steps, write the brief.
+
+BEFORE RETURNING YOUR JSON — run this validation checklist:
+✓ All claims are from VALID_CLAIMS only (no disease treatment, no weight claims, no medical diagnosis)
+✓ No BANNED_PHRASES appear anywhere in the script
+✓ No BANNED_ANGLES used as hooks or narrative frames
+✓ Total estimated duration is 55-65s
+✓ At least 1 proof element (transformation, COA, beadlet demo, social proof) in the beats
+✓ CTA is specific (not just "link in bio") and matches creator's CTA style
+✓ At least 2 signature phrases from the voice profile used naturally in the script
+✓ Hook matches the style of the voice example provided above (if examples were provided)
+
+If any check fails, revise the relevant beat or section before returning.
+Add "validation_passed": true to your JSON to confirm you completed this check."""
 
     # 10. Output format
     output_block = OUTPUT_FORMAT_INSTRUCTIONS
@@ -218,6 +329,8 @@ Only after thinking through all 5 steps, write the brief."""
         "",
         identity_block,
         "",
+        archetype_block,
+        "",
         voice_block,
         "",
         library_block,
@@ -225,6 +338,8 @@ Only after thinking through all 5 steps, write the brief."""
         inspiration_block,
         "",
         compliance_block,
+        "",
+        beat_structure_block,
         "",
         strategy_block,
         "",
@@ -303,6 +418,11 @@ def _parse_brief_json(raw: str, brief_num: int) -> dict:
     data["brief_num"] = brief_num
     if "brief_type" not in data:
         data["brief_type"] = BRIEF_TYPES[brief_num]
+    # Beat truncation fallback: if model produced > 6 beats, trim to 6
+    beats = data.get("beats", [])
+    if len(beats) > 6:
+        data["beats"] = beats[:6]
+        data["total_beats"] = len(data["beats"])
     return data
 
 
