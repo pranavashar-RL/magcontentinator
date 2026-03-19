@@ -27,9 +27,9 @@ nav{height:52px;padding:0 32px;display:flex;align-items:center;justify-content:s
 .logo-wordmark .lw-mag{font-weight:700;color:#1a1916}
 .logo-wordmark .lw-cont{font-weight:300;color:#b8913e}
 .nav-r{font-size:11px;color:var(--ink4);letter-spacing:.04em}
-.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px 44px;max-width:520px;margin:0 auto;width:100%}
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px 28px;max-width:520px;margin:0 auto;width:100%}
 .eyebrow{font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
-h1{font-size:30px;font-weight:300;letter-spacing:-.025em;line-height:1.18;text-align:center;margin-bottom:24px}
+h1{font-size:26px;font-weight:300;letter-spacing:-.025em;line-height:1.18;text-align:center;margin-bottom:24px}
 .how-steps{display:flex;gap:8px;width:100%;margin-bottom:28px}
 .how-step{flex:1;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 13px;display:flex;flex-direction:column;gap:3px}
 .how-num{font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}
@@ -179,19 +179,9 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 <div class="screen active" id="s1">
   <nav>
     <a class="logo-wrap" href="#" onclick="return false;">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="6" width="19" height="16" rx="2.5" fill="#0d3d28"/>
-        <rect x="3.5" y="8.5" width="9" height="7" rx="1.2" fill="#17e79c" opacity=".85"/>
-        <line x1="3.5" y1="10.8" x2="12.5" y2="10.8" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <line x1="3.5" y1="12.6" x2="12.5" y2="12.6" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <line x1="3.5" y1="14.4" x2="12.5" y2="14.4" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <circle cx="16.5" cy="10.5" r="1.3" fill="#b8913e"/>
-        <circle cx="16.5" cy="14" r="1.3" fill="#b8913e" opacity=".5"/>
-        <circle cx="16.5" cy="17.5" r="1.3" fill="#b8913e" opacity=".22"/>
-        <rect x="20" y="12" width="6.5" height="3.5" rx="1" fill="#b8913e"/>
-        <path d="M27 9.5 L27.5 11 L29 11.5 L27.5 12 L27 13.5 L26.5 12 L25 11.5 L26.5 11 Z" fill="#b8913e" opacity=".9" transform="scale(0.72) translate(10.5, 1.5)"/>
-        <circle cx="25.5" cy="17.5" r=".9" fill="#b8913e" opacity=".5"/>
-        <circle cx="24" cy="10.5" r=".6" fill="#0d3d28" opacity=".3"/>
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <rect width="26" height="26" rx="6" fill="#0d3d28"/>
+        <text x="13" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#17e79c">M</text>
       </svg>
       <div class="logo-wordmark">
         <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
@@ -236,14 +226,14 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
       <span class="chip" onclick="sh('patrickbankroll')">patrickbankroll</span>
     </div>
 
-    <div class="inspo-section">
-      <div class="inspo-header">Inspiration <span style="font-weight:400;color:var(--ink4);text-transform:none;letter-spacing:0"> — optional</span></div>
-      <div>
+    <div style="margin-top:14px;width:100%">
+      <button onclick="toggleInspo(this)" class="btn btn-ghost" style="font-size:11px;color:var(--ink4);padding:4px 0;width:100%;text-align:left">
+        + Add inspiration URLs or notes <span style="opacity:.5">(optional)</span>
+      </button>
+      <div id="inspoPanel" style="display:none;margin-top:10px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 15px;display:none;flex-direction:column;gap:10px">
         <div class="inspo-fl">Reference URLs <span>(comma-separated TikTok links)</span></div>
         <input type="text" id="inspoUrls" placeholder="https://tiktok.com/@creator/video/..." style="padding-left:13px;font-size:13px">
-      </div>
-      <div>
-        <div class="inspo-fl">Notes <span>(angles, tone, vibes to borrow)</span></div>
+        <div class="inspo-fl" style="margin-top:6px">Notes <span>(angles, tone, vibes to borrow)</span></div>
         <textarea id="inspoTa" placeholder="e.g. 'Love how she explains it simply, gym setting, 30–40s'" style="min-height:56px"></textarea>
       </div>
     </div>
@@ -256,19 +246,9 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 <div class="screen" id="s2">
   <nav>
     <a class="logo-wrap" href="#" onclick="toS1();return false;">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="6" width="19" height="16" rx="2.5" fill="#0d3d28"/>
-        <rect x="3.5" y="8.5" width="9" height="7" rx="1.2" fill="#17e79c" opacity=".85"/>
-        <line x1="3.5" y1="10.8" x2="12.5" y2="10.8" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <line x1="3.5" y1="12.6" x2="12.5" y2="12.6" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <line x1="3.5" y1="14.4" x2="12.5" y2="14.4" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <circle cx="16.5" cy="10.5" r="1.3" fill="#b8913e"/>
-        <circle cx="16.5" cy="14" r="1.3" fill="#b8913e" opacity=".5"/>
-        <circle cx="16.5" cy="17.5" r="1.3" fill="#b8913e" opacity=".22"/>
-        <rect x="20" y="12" width="6.5" height="3.5" rx="1" fill="#b8913e"/>
-        <path d="M27 9.5 L27.5 11 L29 11.5 L27.5 12 L27 13.5 L26.5 12 L25 11.5 L26.5 11 Z" fill="#b8913e" opacity=".9" transform="scale(0.72) translate(10.5, 1.5)"/>
-        <circle cx="25.5" cy="17.5" r=".9" fill="#b8913e" opacity=".5"/>
-        <circle cx="24" cy="10.5" r=".6" fill="#0d3d28" opacity=".3"/>
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <rect width="26" height="26" rx="6" fill="#0d3d28"/>
+        <text x="13" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#17e79c">M</text>
       </svg>
       <div class="logo-wordmark">
         <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
@@ -343,19 +323,9 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 <div class="screen" id="s3">
   <nav>
     <a class="logo-wrap" href="#" onclick="toS1();return false;">
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect x="1" y="6" width="19" height="16" rx="2.5" fill="#0d3d28"/>
-        <rect x="3.5" y="8.5" width="9" height="7" rx="1.2" fill="#17e79c" opacity=".85"/>
-        <line x1="3.5" y1="10.8" x2="12.5" y2="10.8" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <line x1="3.5" y1="12.6" x2="12.5" y2="12.6" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <line x1="3.5" y1="14.4" x2="12.5" y2="14.4" stroke="#0d3d28" stroke-width=".7" opacity=".45"/>
-        <circle cx="16.5" cy="10.5" r="1.3" fill="#b8913e"/>
-        <circle cx="16.5" cy="14" r="1.3" fill="#b8913e" opacity=".5"/>
-        <circle cx="16.5" cy="17.5" r="1.3" fill="#b8913e" opacity=".22"/>
-        <rect x="20" y="12" width="6.5" height="3.5" rx="1" fill="#b8913e"/>
-        <path d="M27 9.5 L27.5 11 L29 11.5 L27.5 12 L27 13.5 L26.5 12 L25 11.5 L26.5 11 Z" fill="#b8913e" opacity=".9" transform="scale(0.72) translate(10.5, 1.5)"/>
-        <circle cx="25.5" cy="17.5" r=".9" fill="#b8913e" opacity=".5"/>
-        <circle cx="24" cy="10.5" r=".6" fill="#0d3d28" opacity=".3"/>
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <rect width="26" height="26" rx="6" fill="#0d3d28"/>
+        <text x="13" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#17e79c">M</text>
       </svg>
       <div class="logo-wordmark">
         <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
@@ -651,7 +621,7 @@ function renderBriefRight(num, b) {
       <button class="btn btn-gold" style="width:100%;justify-content:flex-start;font-size:12px;margin-top:6px" onclick="copyCreatorMsg(${num - 1})">Copy message to creator</button>
     </div>
     <div class="regen-block">
-      <div class="regen-l">Give feedback · regenerate</div>
+      <div class="regen-l" style="font-size:14px;font-weight:600;color:var(--ink2)">Feedback — give notes and regenerate</div>
       <div class="regen-row">
         <textarea id="rta${num}" placeholder="e.g. 'Gym setting, 35s, drop the beadlet explanation'"></textarea>
       </div>
@@ -800,6 +770,15 @@ function updateRibbonSteps(stage) {
 
 function sh(h) {
   document.getElementById('hi').value = h;
+}
+
+function toggleInspo(btn) {
+  const panel = document.getElementById('inspoPanel');
+  const hidden = panel.style.display === 'none' || panel.style.display === '';
+  panel.style.display = hidden ? 'flex' : 'none';
+  btn.textContent = hidden
+    ? '− Hide inspiration'
+    : '+ Add inspiration URLs or notes (optional)';
 }
 </script>
 </body>
