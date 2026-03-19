@@ -161,8 +161,9 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--cream2);border-radius:2px}
-.lib-card{background:var(--mint-bg);border:1px solid rgba(20,160,119,.2);border-radius:12px;padding:16px;display:none}
-.lib-card.show{display:block}
+.lib-card{background:var(--mint-bg);border:1px solid rgba(20,160,119,.2);border-radius:12px;padding:16px;opacity:0;max-height:0;overflow:hidden;transition:opacity .3s ease,max-height .35s ease,padding .3s ease;padding-top:0;padding-bottom:0}
+.lib-card.show{opacity:1;max-height:600px;padding:16px}
+.lib-card.skeleton{opacity:0.55}
 .lib-card-head{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mint);margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .lib-row{display:flex;flex-direction:column;gap:6px}
 .lib-brief{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px}
@@ -415,7 +416,13 @@ function connectSSE() {
 
   eventSource.addEventListener('library_intel', (e) => {
     const d = JSON.parse(e.data);
-    if (d.available) showLibraryCard(d);
+    if (d.available) {
+      showLibraryCard(d);
+    } else {
+      // No library data — collapse the skeleton card smoothly
+      const lc = document.getElementById('libCard');
+      if (lc) { lc.classList.remove('show', 'skeleton'); }
+    }
   });
 
   eventSource.addEventListener('preflight_complete', (e) => {
@@ -486,9 +493,13 @@ async function toS2() {
   document.querySelectorAll('.rs').forEach(s => s.classList.remove('run', 'done'));
   _scheduleSkipButton();
 
-  // Reset lib card
+  // Reset lib card — show skeleton immediately so no jarring pop-in later
   const lc = document.getElementById('libCard');
-  if (lc) { lc.classList.remove('show'); lc.innerHTML = ''; }
+  if (lc) {
+    lc.innerHTML = `<div class="lib-card-head"><div class="skel-spin" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:middle;margin-right:4px"></div>Fetching library intel…</div><div style="font-size:11px;color:var(--ink4);line-height:1.7">Matching creator archetype to $1.73M GMV data…</div>`;
+    lc.classList.remove('skeleton');
+    lc.classList.add('show', 'skeleton');
+  }
   libSelections = {brief_1: true, brief_2: true, brief_3: true};
   skipLibrary = false;
 
@@ -774,6 +785,7 @@ function showLibraryCard(data) {
       <span>Skip library entirely — pure voice + product for all briefs</span>
     </div>
   `;
+  card.classList.remove('skeleton');
   card.classList.add('show');
 }
 
