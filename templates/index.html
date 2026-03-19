@@ -532,13 +532,26 @@ function renderBriefLeft(num, b) {
     const isProd = beat.product_integration && beat.product_integration !== 'null' && beat.product_integration !== null;
     const rowClass = isProd ? ' class="pr"' : '';
     const badge = isProd ? `<br><span class="pbadge">&#x2B21; Product on screen</span>` : '';
+    const musicNote = beat.music ? `<br><span style="font-size:10px;color:var(--ink4)">♪ ${escHtml(beat.music)}</span>` : '';
     return `<tr${rowClass}>
       <td class="t-time">${escHtml(beat.time || '')}</td>
-      <td class="t-act">${escHtml(beat.action || '')}${badge}</td>
+      <td class="t-act">${escHtml(beat.action || '')}${badge}${musicNote}</td>
       <td class="t-ov">${escHtml(beat.text_overlay || '—')}</td>
-      <td class="t-au">${escHtml(beat.audio || '—')}</td>
+      <td class="t-au">${escHtml(beat.script || beat.audio || '—')}</td>
     </tr>`;
   }).join('');
+
+  const fullScriptHtml = b.full_script ? `
+    <div class="mc">
+      <div class="mc-l" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">Full script ▾</div>
+      <div class="mc-t" style="white-space:pre-wrap;font-family:inherit">${escHtml(b.full_script)}</div>
+    </div>` : '';
+
+  const prodNotesHtml = b.production_notes ? `
+    <div class="mc">
+      <div class="mc-l">Production notes</div>
+      <div class="mc-t">${escHtml(b.production_notes)}</div>
+    </div>` : '';
 
   el.innerHTML = `
     <div class="b-ey">
@@ -549,7 +562,9 @@ function renderBriefLeft(num, b) {
     <div class="hkcard">
       <div class="hk-l">Hook · 0–3s</div>
       <div class="hk-t">${escHtml(b.hook_text || '')}</div>
+      ${b.hook_visual ? `<div style="font-size:11px;color:var(--ink3);margin-top:6px;font-style:italic">🎬 ${escHtml(b.hook_visual)}</div>` : ''}
     </div>
+    ${b.narrative_flow ? `<div style="font-size:12px;color:var(--ink3);margin-bottom:16px;padding:10px 12px;background:var(--bg);border-radius:6px;line-height:1.5">${escHtml(b.narrative_flow)}</div>` : ''}
     <div class="btw">
       <table class="bt">
         <thead>
@@ -557,7 +572,7 @@ function renderBriefLeft(num, b) {
             <th>Time</th>
             <th>Action (Visual)</th>
             <th>Text Overlay</th>
-            <th>Audio — verbatim</th>
+            <th>Script — verbatim</th>
           </tr>
         </thead>
         <tbody>${beatRows}</tbody>
@@ -572,6 +587,8 @@ function renderBriefLeft(num, b) {
         <div class="mc-l">Key claims</div>
         <div class="mc-t">${(b.key_claims || []).map(c => '· ' + escHtml(c)).join('<br>')}</div>
       </div>
+      ${prodNotesHtml}
+      ${fullScriptHtml}
     </div>
   `;
 }
@@ -700,16 +717,16 @@ function pickStrategy(el, val) {
 function copyBrief(idx) {
   const b = currentBriefs[idx];
   if (!b) return;
-  const beats = (b.beats || []).map(beat => `${beat.time}: ${beat.action} | ${beat.text_overlay || ''} | ${beat.audio || ''}`).join('\n');
-  const text = `BRIEF ${idx + 1}: ${b.hook_text}\n\nCombo: ${b.combo}\nPain point: ${b.pain_point}\nDuration: ${b.total_duration}\n\nBEAT TABLE:\n${beats}\n\nWHY IT WORKS:\n${b.why_this_works}`;
+  const beats = (b.beats || []).map(beat => `${beat.time}: ${beat.action} | ${beat.text_overlay || ''} | ${beat.script || beat.audio || ''}`).join('\n');
+  const text = `BRIEF ${idx + 1}: ${b.hook_text}\n\nCombo: ${b.combo}\nPain point: ${b.pain_point}\nDuration: ${b.total_duration}\n\n${b.narrative_flow ? 'NARRATIVE:\n' + b.narrative_flow + '\n\n' : ''}BEAT TABLE:\n${beats}\n\nFULL SCRIPT:\n${b.full_script || ''}\n\nPRODUCTION NOTES:\n${b.production_notes || ''}\n\nWHY IT WORKS:\n${b.why_this_works}`;
   navigator.clipboard.writeText(text).then(() => showToast('Brief copied!'));
 }
 
 function copyCreatorMsg(idx) {
   const b = currentBriefs[idx];
   if (!b) return;
-  const beats = (b.beats || []).map(beat => `${beat.time}: ${beat.audio || beat.action}`).join('\n');
-  const text = `Hey! Here's a brief for AshwaMag Gummies:\n\nHook: "${b.hook_text}"\n\nBeat-by-beat:\n${beats}\n\nCTA: ${b.cta || 'Tap the cart below!'}`;
+  const beats = (b.beats || []).map(beat => `${beat.time}: ${beat.script || beat.audio || beat.action}`).join('\n');
+  const text = `Hey! Here's a brief for AshwaMag Gummies:\n\nHook: "${b.hook_text}"\n\nFull script:\n${b.full_script || beats}\n\nBeat-by-beat direction:\n${(b.beats || []).map(beat => `${beat.time}: ${beat.action}`).join('\n')}\n\nCTA: ${b.cta || 'Tap the cart below!'}`;
   navigator.clipboard.writeText(text).then(() => showToast('Creator message copied!'));
 }
 
