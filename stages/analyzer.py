@@ -213,7 +213,7 @@ def _gemini_analyze_sync(video_path: str) -> dict:
             response_mime_type="application/json",
             temperature=0.1,
             max_output_tokens=8192,
-            thinking_config=types.ThinkingConfig(thinking_budget=GEMINI_THINKING_BUDGET),
+            thinking_config=types.ThinkingConfig(thinkingBudget=GEMINI_THINKING_BUDGET),
         )
 
         response = gemini_client.models.generate_content(
