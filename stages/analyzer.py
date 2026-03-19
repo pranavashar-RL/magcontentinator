@@ -1,5 +1,12 @@
-"""Stage B: Analyzer — Gemini 2.5 Flash visual beat analysis + GPT-5.4 pattern extraction.
-Videos are analyzed ONE AT A TIME to avoid Gemini threading issues / memory spikes.
+"""Stage B: Analyzer — Gemini 2.5 Flash visual beat analysis (merged B1+B2 in one shot).
+
+Video download: Apify postURLs per video (bypasses Railway/TikTok CDN block, gets fresh URL).
+Gemini: new google.genai SDK, response_mime_type=application/json, thinking budget, file cleanup.
+GPT-4o fallback: transcript-only analysis when video download or Gemini fails.
+
+Model assignments:
+  - Gemini 2.5 Flash: visual analysis (all video analysis)
+  - GPT-4o: transcript-only fallback
 """
 import os
 import asyncio
@@ -7,334 +14,326 @@ import json
 import logging
 import tempfile
 import time
-from typing import Callable
+from typing import Callable, Optional
 
-import httpx
-import google.generativeai as genai
+from apify_client import ApifyClient
+from google import genai
+from google.genai import types
 from openai import AsyncOpenAI
 
 logger = logging.getLogger(__name__)
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+APIFY_API_KEY = os.getenv("APIFY_API_KEY", "")
+APIFY_ACTOR_ID = os.getenv("APIFY_ACTOR_ID", "z6GDWcyb4ZVT10ogS")
 
-genai.configure(api_key=GOOGLE_API_KEY)
-
-# Module-level model — not thread-safe to create per-call
-GEMINI_MODEL = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
-    safety_settings={
-        cat: genai.types.HarmBlockThreshold.BLOCK_NONE
-        for cat in [
-            genai.types.HarmCategory.HARM_CATEGORY_HARASSMENT,
-            genai.types.HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-            genai.types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-            genai.types.HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        ]
-    },
-)
-
+gemini_client = genai.Client(api_key=GOOGLE_API_KEY)
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
-# Max 2 Gemini uploads at a time — parallel but bounded to avoid RAM spikes / segfaults
+# Gemini: 2 concurrent uploads (memory/GPU bound)
+# Apify downloads: 3 concurrent (API rate limit friendly)
 GEMINI_SEMAPHORE = asyncio.Semaphore(2)
+APIFY_SEMAPHORE = asyncio.Semaphore(3)
 
-B1_PROMPT = """Analyze this TikTok video beat by beat. Return ONLY valid JSON matching this exact schema:
+GEMINI_THINKING_BUDGET = 4096  # Enough for careful visual analysis, not overkill
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# OPTIMIZED 20-FIELD PROMPT — merges B1 visual analysis + B2 pattern extraction
+# Gemini watches the video directly → more accurate classification than GPT-4o
+# reading a text summary
+# ─────────────────────────────────────────────────────────────────────────────
+
+B1_VISUAL_PROMPT = """You are analyzing a TikTok video for content strategy research.
+Watch the ENTIRE video carefully — hook, narrative, product reveal, CTA.
+
+Return ONLY valid JSON with exactly these fields. No markdown fences, no extra text.
+
 {
-  "duration_seconds": <int>,
-  "beat_count": <int>,
+  "duration_seconds": <int: total video length>,
+
+  "hook_text": "<verbatim exact words spoken in the first 3 seconds>",
+  "hook_visual": "<specific: setting, shot type, framing, props held, body language, text overlay visible in the opening>",
+  "hook_type": "<one of: controversial_take | bold_claim | authority_intro | relatable_callout | curiosity_gap | question | before_after | personal_story | social_proof_callout | fomo_urgency | shock_value | negative_framing>",
+  "hook_scroll_stop": "<one sentence: the single most attention-grabbing element in the first 2 seconds>",
+
+  "narrative_arc": "<one of: problem_solution | testimonial | before_after | comparison | authority_lecture | listicle | debunk | social_proof_cascade | tutorial | enemy_hero>",
+  "pain_point": "<one of: sleep | brain_fog | stress_cortisol | low_energy | muscle_recovery | pms_hormones | general_wellness | other>",
+
   "beats": [
-    {"time": "0-3s", "beat_num": 1, "action": "<exact visual description>", "text_overlay": "<exact on-screen text or null>", "audio": "<verbatim spoken words or null>", "product_integration": null}
+    {
+      "time": "<e.g. 0-3s>",
+      "script": "<VERBATIM words spoken in this beat — exact speech, not a summary>",
+      "visual": "<specific: shot type (CLOSE-UP/MEDIUM/WIDE), physical action, text overlay content, transitions, props — NOT generic>",
+      "product_integration": <null | "first_appearance" | "on_screen" | "demo" | "verbal_only">
+    }
   ],
-  "hook_text": "<first 3 seconds verbatim audio>",
-  "transcript": "<full verbatim transcript>"
+
+  "product_first_appear_second": <int or null: exact second product appears on screen>,
+  "product_integration_method": "<one of: early_hook | mid_reveal | end_reveal | throughout | never>",
+  "cta_text": "<verbatim CTA words or null if none>",
+  "cta_type": "<one of: link_in_bio | comment_for_link | direct_shop | discount_code | none>",
+
+  "authority_signals": ["<list credentials, trust signals, or proof elements used>"],
+  "archetype_signals": ["<creator archetype signals: pharmacist | wellness_influencer | fitness_coach | ugc_creator | nurse | nutritionist | mom_lifestyle | beauty_guru | etc>"],
+  "signature_phrases": ["<repeated phrases, catchphrases, or characteristic expressions>"],
+
+  "setting": "<one of: pharmacy_store_aisle | home_bathroom | home_kitchen | home_bedroom | gym | office | outdoor | studio | other>",
+  "full_transcript": "<complete verbatim transcript — every word spoken from first to last>",
+
+  "pain_point_clarity": <1-5: how clearly is a specific problem articulated>,
+  "transformation_proof": <true | false: is before/after or results evidence shown>,
+  "social_proof_present": <true | false: reviews, comments, or testimonials shown>,
+  "coa_lab_present": <true | false: COA, lab results, or third-party testing shown>
 }
-For product_integration: use "first_appearance" when product is first shown, "on_screen" for subsequent appearances, null otherwise.
-Capture every beat. Be extremely precise about audio (verbatim words). Return only JSON, no markdown."""
+
+CRITICAL RULES:
+1. Every "script" field: verbatim speech, exact words — never paraphrase or summarize
+2. Every "visual" field: specific camera direction (e.g. "CLOSE-UP of beadlets in palm, text overlay: VISIBLE BEADLETS") — not generic ("shows product")
+3. One beat per topic/scene shift — capture all of them
+4. hook_text: literally the first words the creator says, verbatim
+5. Return ONLY the JSON object. No explanation, no markdown."""
+
+
+# ─── Transcript-only B1 fallback (GPT-4o when video download fails) ───
 
 B1_TRANSCRIPT_PROMPT = """You are analyzing a TikTok video transcript for content strategy research.
-Given this transcript, produce a beat-by-beat analysis inferring structure from the text.
-Return ONLY valid JSON matching this exact schema:
+Given this transcript, reconstruct the content structure and classify the patterns.
+Return ONLY valid JSON with exactly these fields. No markdown fences.
+
 {
   "duration_seconds": null,
-  "beat_count": <int>,
+  "hook_text": "<opening line verbatim from transcript>",
+  "hook_visual": null,
+  "hook_type": "<one of: controversial_take | bold_claim | authority_intro | relatable_callout | curiosity_gap | question | before_after | personal_story | social_proof_callout | fomo_urgency | shock_value | negative_framing>",
+  "hook_scroll_stop": "<what about the opening would stop a scroll>",
+  "narrative_arc": "<one of: problem_solution | testimonial | before_after | comparison | authority_lecture | listicle | debunk | social_proof_cascade | tutorial | enemy_hero>",
+  "pain_point": "<one of: sleep | brain_fog | stress_cortisol | low_energy | muscle_recovery | pms_hormones | general_wellness | other>",
   "beats": [
-    {"time": "0-3s", "beat_num": 1, "action": "<inferred context>", "text_overlay": null, "audio": "<verbatim from transcript>", "product_integration": null}
+    {
+      "time": "<estimated>",
+      "script": "<verbatim section of transcript>",
+      "visual": null,
+      "product_integration": <null | "first_appearance" | "on_screen" | "demo" | "verbal_only">
+    }
   ],
-  "hook_text": "<opening line verbatim>",
-  "transcript": "<full verbatim transcript>"
-}
-For product_integration: use "first_appearance" when product is first mentioned, "on_screen" for subsequent mentions, null otherwise.
-Split the transcript into logical beats (topic shifts, pauses, new points). Return only JSON, no markdown."""
-
-B2_SYSTEM = """You are a TikTok content analyst for supplement brands.
-Given a beat-by-beat video analysis, extract content patterns.
-Return ONLY valid JSON. No markdown, no explanation."""
-
-B2_USER = """Extract patterns from this beat analysis:
-
-{b1_json}
-
-Return JSON with exactly these fields:
-{{
-  "hook_type": "<relatable_callout|bold_claim|before_after|negative_framing|controversial_take|personal_story|social_proof_callout|fomo_urgency|shock_value|curiosity_gap|authority_intro|question>",
-  "narrative_arc": "<problem_solution|testimonial|before_after|product_showcase|comparison|enemy_hero|listicle|social_proof_cascade|tutorial|debunk>",
-  "pain_point": "<sleep|brain_fog|stress_cortisol|low_energy|muscle_recovery|pms_hormones|general_wellness|other>",
-  "product_integration_method": "<early_hook|mid_reveal|end_reveal|throughout|never>",
-  "cta_type": "<link_in_bio|comment_for_link|direct_shop|discount_code|none>",
-  "authority_signals": ["<credentials or trust signals used>"],
+  "product_first_appear_second": null,
+  "product_integration_method": "<one of: early_hook | mid_reveal | end_reveal | throughout | never>",
+  "cta_text": "<verbatim CTA if present or null>",
+  "cta_type": "<one of: link_in_bio | comment_for_link | direct_shop | discount_code | none>",
+  "authority_signals": ["<credentials or trust signals mentioned>"],
+  "archetype_signals": ["<inferred creator archetype signals>"],
+  "signature_phrases": ["<repeated phrases or characteristic expressions>"],
+  "setting": null,
+  "full_transcript": "<full verbatim transcript>",
   "pain_point_clarity": <1-5>,
-  "transformation_proof": <true|false>,
-  "social_proof_present": <true|false>,
-  "coa_lab_present": <true|false>,
-  "archetype_signals": ["<pharmacist|wellness_influencer|fitness_coach|ugc_creator|etc>"]
-}}"""
+  "transformation_proof": <true | false>,
+  "social_proof_present": <true | false>,
+  "coa_lab_present": <true | false>
+}"""
 
 
-def _parse_json(text: str) -> dict:
-    text = text.strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[-1]
-        if "```" in text:
-            text = text[: text.rfind("```")]
-    return json.loads(text.strip())
+# ─────────────────────────────────────────────────────────────────────────────
+# APIFY DOWNLOAD — per-video, fresh CDN URL at analysis time
+# Bypasses Railway IP block by letting Apify fetch fresh CDN URLs
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _apify_download_video_sync(tiktok_url: str, output_path: str) -> bool:
+    """Download a single TikTok video via Apify postURLs (sync, runs in executor).
+
+    Gets a fresh CDN URL at analysis time (not the expiring URL from Stage A),
+    then downloads bytes directly.
+    """
+    try:
+        client = ApifyClient(APIFY_API_KEY)
+        actor_run = client.actor(APIFY_ACTOR_ID).call(
+            run_input={"postURLs": [tiktok_url], "resultsPerPage": 1},
+            max_items=1,
+        )
+        dataset_id = actor_run.get("defaultDatasetId")
+        if not dataset_id:
+            return False
+
+        items = list(client.dataset(dataset_id).iterate_items())
+        if not items:
+            return False
+
+        item = items[0]
+        video_url = (
+            item.get("videoUrl")
+            or item.get("video", {}).get("downloadAddr")
+            or item.get("videoPlayUrl")
+        )
+        if not video_url:
+            return False
+
+        import requests as req
+        resp = req.get(video_url, timeout=90, stream=True)
+        if resp.status_code != 200:
+            return False
+
+        with open(output_path, "wb") as f:
+            for chunk in resp.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        # Sanity check: must be a real video (>50KB)
+        return os.path.exists(output_path) and os.path.getsize(output_path) > 50_000
+
+    except Exception as e:
+        logger.warning("Apify download failed for %s: %s", tiktok_url, e)
+        return False
 
 
-def _gemini_analyze_sync(video_bytes: bytes, apify_transcript: str) -> dict:
-    """Sync: upload to Gemini, wait for ACTIVE, generate beat analysis. Called in executor."""
-    tmp_path = None
+# ─────────────────────────────────────────────────────────────────────────────
+# GEMINI ANALYSIS — new SDK, response_mime_type=json, thinking budget, cleanup
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _gemini_analyze_sync(video_path: str) -> dict:
+    """Upload to Gemini, generate analysis, delete file. Sync — runs in executor."""
     gemini_file = None
     try:
-        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-            tmp.write(video_bytes)
-            tmp_path = tmp.name
+        gemini_file = gemini_client.files.upload(
+            file=video_path,
+            config={"mime_type": "video/mp4"},
+        )
 
-        gemini_file = genai.upload_file(tmp_path, mime_type="video/mp4")
-
-        # Poll until ACTIVE (max 90s)
-        for _ in range(90):
+        # Poll until ACTIVE (max 120s)
+        for _ in range(60):
             if gemini_file.state.name == "ACTIVE":
                 break
             if gemini_file.state.name == "FAILED":
                 raise RuntimeError("Gemini file processing FAILED")
-            time.sleep(1)
-            gemini_file = genai.get_file(gemini_file.name)
+            time.sleep(2)
+            gemini_file = gemini_client.files.get(name=gemini_file.name)
         else:
-            raise RuntimeError("Gemini file never became ACTIVE after 90s")
+            raise RuntimeError("Gemini file never became ACTIVE after 120s")
 
-        # Add transcript context to prompt if available
-        prompt = B1_PROMPT
-        if apify_transcript:
-            prompt = f"Apify transcript for reference:\n{apify_transcript[:1500]}\n\n" + B1_PROMPT
+        gen_config = types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.1,
+            max_output_tokens=8192,
+            thinking_config=types.ThinkingConfig(thinking_budget=GEMINI_THINKING_BUDGET),
+        )
 
-        response = GEMINI_MODEL.generate_content([gemini_file, prompt])
-        return _parse_json(response.text)
+        response = gemini_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                types.Part.from_uri(file_uri=gemini_file.uri, mime_type="video/mp4"),
+                B1_VISUAL_PROMPT,
+            ],
+            config=gen_config,
+        )
+
+        return json.loads(response.text)
 
     finally:
-        # Always clean up
-        if tmp_path:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+        # Always clean up — don't leave files sitting in Gemini storage
         if gemini_file:
             try:
-                genai.delete_file(gemini_file.name)
+                gemini_client.files.delete(name=gemini_file.name)
             except Exception:
                 pass
 
 
-async def analyze_video(video: dict, idx: int, total: int, emit: Callable) -> dict:
-    """Download + Gemini B1 + GPT B2, max 2 at a time (semaphore gates everything)."""
+# ─────────────────────────────────────────────────────────────────────────────
+# STAGE B PIPELINE — download + analyze + fallback
+# ─────────────────────────────────────────────────────────────────────────────
+
+async def _analyze_video(video: dict, idx: int, total: int, emit: Callable) -> dict:
+    """Full pipeline for one video: Apify download → Gemini visual analysis.
+    Falls back to GPT-4o transcript analysis if download or Gemini fails.
+    """
     video_id = video.get("video_id", f"video_{idx}")
-    download_url = video.get("download_url") or video.get("url") or ""
+    tiktok_url = video.get("url") or video.get("download_url") or ""
+    transcript = (video.get("transcript") or "").strip()
 
-    if not download_url:
-        logger.warning("Video %s has no download URL", video_id)
-        return {**video, "b1": None, "b2": None, "error": "no_url"}
+    if not tiktok_url:
+        logger.warning("Video %s has no URL", video_id)
+        return {**video, "b1": None, "error": "no_url"}
 
-    # Semaphore gates download + Gemini together — avoids hammering TikTok CDN
-    # with 10 simultaneous connections that trigger rate-limiting
-    apify_transcript = video.get("transcript") or ""
-    async with GEMINI_SEMAPHORE:
-        # Download
-        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: downloading..."})
-        try:
-            async with httpx.AsyncClient(timeout=120, follow_redirects=True) as http:
-                resp = await http.get(
-                    download_url,
-                    headers={"User-Agent": "Mozilla/5.0 (compatible; TikTok-video-downloader)"},
-                )
-                resp.raise_for_status()
-                video_bytes = resp.content
-        except Exception as e:
-            logger.warning("Download failed for %s: %s | url=%s", video_id, e, download_url[:80])
-            return {**video, "b1": None, "b2": None, "error": f"download_failed: {e}"}
-
-        size_kb = len(video_bytes) // 1024
-        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: {size_kb}KB downloaded. Uploading to Gemini..."})
-
-        # B1 — Gemini
+    # ── Phase 1: Download via Apify ──
+    async with APIFY_SEMAPHORE:
+        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: downloading via Apify..."})
+        tmp_path = tempfile.mktemp(suffix=".mp4")
         try:
             loop = asyncio.get_event_loop()
-            b1 = await asyncio.wait_for(
-                loop.run_in_executor(None, _gemini_analyze_sync, video_bytes, apify_transcript),
-                timeout=180,
+            success = await asyncio.wait_for(
+                loop.run_in_executor(None, _apify_download_video_sync, tiktok_url, tmp_path),
+                timeout=120,
             )
-            del video_bytes  # free memory immediately
         except Exception as e:
-            logger.warning("B1 Gemini failed for %s: %s", video_id, e)
-            del video_bytes
-            return {**video, "b1": None, "b2": None, "error": f"b1_failed: {e}"}
+            logger.warning("Download failed for %s: %s", video_id, e)
+            success = False
 
-    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: Gemini done. Extracting patterns..."})
+    # ── Phase 2a: Gemini visual analysis (if download succeeded) ──
+    if success:
+        size_kb = os.path.getsize(tmp_path) // 1024
+        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: {size_kb}KB — analyzing with Gemini..."})
 
-    # B2 — GPT-5.4
-    try:
-        b2_resp = await openai_client.chat.completions.create(
-            model="gpt-5.4",
-            messages=[
-                {"role": "system", "content": B2_SYSTEM},
-                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2))},
-            ],
-            temperature=0.2,
-            timeout=60,
-        )
-        b2 = _parse_json(b2_resp.choices[0].message.content)
-    except Exception as e:
-        logger.warning("B2 GPT failed for %s: %s", video_id, e)
-        return {**video, "b1": b1, "b2": None, "error": f"b2_failed: {e}"}
-
-    emit("progress", {
-        "stage": "B",
-        "message": f"Video {idx}/{total} done — {b2.get('hook_type', '?')} / {b2.get('pain_point', '?')}",
-    })
-    return {**video, "b1": b1, "b2": b2, "error": None}
-
-
-_DOWNLOAD_SEMAPHORE = asyncio.Semaphore(5)  # download all fast while URLs are fresh
-
-
-async def _download_video(video: dict, idx: int, total: int, emit: Callable):
-    """Download one video bytes; returns (video_dict, bytes_or_None)."""
-    video_id = video.get("video_id", f"video_{idx}")
-    download_url = video.get("download_url") or video.get("url") or ""
-    if not download_url:
-        logger.warning("Video %s has no download URL", video_id)
-        return video, None
-
-    async with _DOWNLOAD_SEMAPHORE:
-        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: downloading..."})
-        try:
-            async with httpx.AsyncClient(timeout=60, follow_redirects=True) as http:
-                resp = await http.get(
-                    download_url,
-                    headers={"User-Agent": "Mozilla/5.0 (compatible; Magcontentinator)"},
+        async with GEMINI_SEMAPHORE:
+            try:
+                loop = asyncio.get_event_loop()
+                b1 = await asyncio.wait_for(
+                    loop.run_in_executor(None, _gemini_analyze_sync, tmp_path),
+                    timeout=240,
                 )
-                resp.raise_for_status()
-                return video, resp.content
-        except Exception as e:
-            logger.warning("Download failed for %s: %s | url=%s", video_id, e, download_url[:80])
-            return video, None
+                b1["_source"] = "gemini_visual"
+            except Exception as e:
+                logger.warning("Gemini analysis failed for %s: %s", video_id, e)
+                b1 = None
+            finally:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
 
+        if b1:
+            emit("progress", {
+                "stage": "B",
+                "message": f"Video {idx}/{total} ✓ visual — {b1.get('hook_type', '?')} / {b1.get('pain_point', '?')}",
+            })
+            return {**video, "b1": b1, "error": None}
 
-async def _analyze_bytes(video: dict, video_bytes: bytes, idx: int, total: int, emit: Callable) -> dict:
-    """Run Gemini B1 + GPT B2 on already-downloaded video bytes."""
-    video_id = video.get("video_id", f"video_{idx}")
-    apify_transcript = video.get("transcript") or ""
-    size_kb = len(video_bytes) // 1024
-
-    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: {size_kb}KB — uploading to Gemini..."})
-
-    async with GEMINI_SEMAPHORE:
-        try:
-            loop = asyncio.get_event_loop()
-            b1 = await asyncio.wait_for(
-                loop.run_in_executor(None, _gemini_analyze_sync, video_bytes, apify_transcript),
-                timeout=180,
-            )
-            del video_bytes
-        except Exception as e:
-            logger.warning("B1 Gemini failed for %s: %s", video_id, e)
-            del video_bytes
-            return {**video, "b1": None, "b2": None, "error": f"b1_failed: {e}"}
-
-    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: Gemini done. Extracting patterns..."})
-
+    # ── Phase 2b: Transcript fallback (GPT-4o) ──
     try:
-        b2_resp = await openai_client.chat.completions.create(
-            model="gpt-5.4",
-            messages=[
-                {"role": "system", "content": B2_SYSTEM},
-                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2))},
-            ],
-            temperature=0.2,
-            timeout=60,
-        )
-        b2 = _parse_json(b2_resp.choices[0].message.content)
-    except Exception as e:
-        logger.warning("B2 GPT failed for %s: %s", video_id, e)
-        return {**video, "b1": b1, "b2": None, "error": f"b2_failed: {e}"}
+        os.unlink(tmp_path)
+    except OSError:
+        pass
 
-    emit("progress", {
-        "stage": "B",
-        "message": f"Video {idx}/{total} done — {b2.get('hook_type', '?')} / {b2.get('pain_point', '?')}",
-    })
-    return {**video, "b1": b1, "b2": b2, "error": None}
-
-
-async def _analyze_transcript_only(video: dict, idx: int, total: int, emit: Callable) -> dict:
-    """Fallback: when video can't be downloaded, analyze transcript via GPT."""
-    video_id = video.get("video_id", f"video_{idx}")
-    transcript = video.get("transcript", "").strip()
     if not transcript:
-        return {**video, "b1": None, "b2": None, "error": "download_failed_no_transcript"}
+        return {**video, "b1": None, "error": "download_failed_no_transcript"}
 
-    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: no download — using transcript fallback..."})
-
+    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: transcript fallback..."})
     try:
-        b1_resp = await openai_client.chat.completions.create(
+        resp = await openai_client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "user", "content": f"{B1_TRANSCRIPT_PROMPT}\n\nTRANSCRIPT:\n{transcript}"},
-            ],
+            messages=[{
+                "role": "user",
+                "content": f"{B1_TRANSCRIPT_PROMPT}\n\nTRANSCRIPT:\n{transcript}",
+            }],
             temperature=0.1,
-            max_completion_tokens=2000,
+            max_completion_tokens=3000,
             timeout=60,
         )
-        b1 = _parse_json(b1_resp.choices[0].message.content)
-        # Ensure transcript field is populated
-        if not b1.get("transcript"):
-            b1["transcript"] = transcript
-    except Exception as e:
-        logger.warning("B1 transcript fallback failed for %s: %s", video_id, e)
-        return {**video, "b1": None, "b2": None, "error": f"transcript_b1_failed: {e}"}
+        b1 = json.loads(resp.choices[0].message.content)
+        b1["_source"] = "gpt4o_transcript"
+        if not b1.get("full_transcript"):
+            b1["full_transcript"] = transcript
 
-    # B2 pattern extraction — same as video path
-    try:
-        b2_resp = await openai_client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": B2_SYSTEM},
-                {"role": "user", "content": B2_USER.format(b1_json=json.dumps(b1, indent=2))},
-            ],
-            temperature=0.2,
-            timeout=60,
-        )
-        b2 = _parse_json(b2_resp.choices[0].message.content)
-    except Exception as e:
-        logger.warning("B2 GPT failed for %s: %s", video_id, e)
-        return {**video, "b1": b1, "b2": None, "error": f"b2_failed: {e}"}
+        emit("progress", {
+            "stage": "B",
+            "message": f"Video {idx}/{total} ✓ transcript — {b1.get('hook_type', '?')} / {b1.get('pain_point', '?')}",
+        })
+        return {**video, "b1": b1, "error": None}
 
-    emit("progress", {
-        "stage": "B",
-        "message": f"Video {idx}/{total} done (transcript) — {b2.get('hook_type', '?')} / {b2.get('pain_point', '?')}",
-    })
-    return {**video, "b1": b1, "b2": b2, "error": None}
+    except Exception as e:
+        logger.warning("Transcript fallback failed for %s: %s", video_id, e)
+        return {**video, "b1": None, "error": f"transcript_failed: {e}"}
 
 
 async def run(job: dict, emit: Callable) -> None:
-    """Stage B: download all in parallel (5 concurrent), then Gemini 2 at a time."""
+    """Stage B: analyze all videos concurrently (Gemini ≤2 at a time, Apify ≤3)."""
     videos = job.get("videos", [])
     if not videos:
         emit("progress", {"stage": "B", "message": "No videos to analyze.", "done": True})
@@ -342,42 +341,26 @@ async def run(job: dict, emit: Callable) -> None:
         return
 
     total = len(videos)
-    emit("progress", {"stage": "B", "message": f"Downloading {total} videos simultaneously..."})
+    emit("progress", {"stage": "B", "message": f"Starting visual analysis of {total} videos..."})
 
-    # Phase 1: download all in parallel while CDN URLs are still fresh
-    download_tasks = [_download_video(v, i + 1, total, emit) for i, v in enumerate(videos)]
-    downloaded = await asyncio.gather(*download_tasks)
+    tasks = [_analyze_video(v, i + 1, total, emit) for i, v in enumerate(videos)]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    n_dl = sum(1 for _, b in downloaded if b is not None)
-    emit("progress", {"stage": "B", "message": f"{n_dl}/{total} downloaded. Starting Gemini analysis (2 at a time)..."})
-
-    # Phase 2: Gemini + GPT on downloaded bytes, 2 at a time
-    analyze_tasks = []
-    results_passthrough = []
-    for i, (video, video_bytes) in enumerate(downloaded):
-        if video_bytes is None:
-            # Fallback: transcript-only analysis if transcript available
-            analyze_tasks.append((i, _analyze_transcript_only(video, i + 1, total, emit)))
-        else:
-            analyze_tasks.append((i, _analyze_bytes(video, video_bytes, i + 1, total, emit)))
-
-    analyzed_results = await asyncio.gather(*[t for _, t in analyze_tasks], return_exceptions=True)
-
-    # Reconstruct in original order
-    result_map = {}
-    for (i, _), result in zip(analyze_tasks, analyzed_results):
+    analyzed = []
+    for i, result in enumerate(results):
         if isinstance(result, Exception):
-            video = downloaded[i][0]
-            result_map[i] = {**video, "b1": None, "b2": None, "error": str(result)}
+            analyzed.append({**videos[i], "b1": None, "error": str(result)})
         else:
-            result_map[i] = result
+            analyzed.append(result)
 
-    results = [result_map[i] for i in range(len(videos))]
-    job["analyzed_videos"] = results
-    successful = sum(1 for r in results if not r.get("error"))
+    job["analyzed_videos"] = analyzed
+    successful = sum(1 for r in analyzed if r.get("b1") is not None)
+    visual = sum(1 for r in analyzed if r.get("b1", {}) and r["b1"].get("_source") == "gemini_visual")
+    fallback = successful - visual
+
     emit("progress", {
         "stage": "B",
-        "message": f"Analysis complete — {successful}/{total} videos analyzed",
+        "message": f"Analysis complete — {successful}/{total} videos ({visual} visual, {fallback} transcript fallback)",
         "done": True,
     })
-    logger.info("Stage B complete: %d/%d videos", successful, total)
+    logger.info("Stage B complete: %d/%d videos (%d visual, %d transcript)", successful, total, visual, fallback)

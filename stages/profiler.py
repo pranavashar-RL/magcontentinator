@@ -39,8 +39,10 @@ OUTPUT_SCHEMA = """{
 
 
 def _build_user_prompt(analyzed_videos: list) -> str:
-    """Summarise all analyzed video patterns into a prompt for the profiler."""
-    valid = [v for v in analyzed_videos if v.get("b2") is not None]
+    """Summarise all analyzed video patterns into a prompt for the profiler.
+    B1 now contains all pattern fields (hook_type, narrative_arc, etc.) — no separate B2.
+    """
+    valid = [v for v in analyzed_videos if v.get("b1") is not None]
     total = len(analyzed_videos)
     valid_count = len(valid)
 
@@ -48,56 +50,56 @@ def _build_user_prompt(analyzed_videos: list) -> str:
         raise ValueError("No successfully analyzed videos to profile.")
 
     # Aggregate counts for each categorical field
-    hook_types = Counter(v["b2"].get("hook_type", "") for v in valid if v["b2"].get("hook_type"))
-    narratives = Counter(v["b2"].get("narrative_arc", "") for v in valid if v["b2"].get("narrative_arc"))
-    pain_points = Counter(v["b2"].get("pain_point", "") for v in valid if v["b2"].get("pain_point"))
-    cta_types = Counter(v["b2"].get("cta_type", "") for v in valid if v["b2"].get("cta_type"))
+    hook_types = Counter(v["b1"].get("hook_type", "") for v in valid if v["b1"].get("hook_type"))
+    narratives = Counter(v["b1"].get("narrative_arc", "") for v in valid if v["b1"].get("narrative_arc"))
+    pain_points = Counter(v["b1"].get("pain_point", "") for v in valid if v["b1"].get("pain_point"))
+    cta_types = Counter(v["b1"].get("cta_type", "") for v in valid if v["b1"].get("cta_type"))
     prod_methods = Counter(
-        v["b2"].get("product_integration_method", "") for v in valid
-        if v["b2"].get("product_integration_method")
+        v["b1"].get("product_integration_method", "") for v in valid
+        if v["b1"].get("product_integration_method")
     )
 
     # Authority signals — flatten all lists
     all_authority = []
     for v in valid:
-        all_authority.extend(v["b2"].get("authority_signals", []))
+        all_authority.extend(v["b1"].get("authority_signals", []))
     authority_counter = Counter(all_authority)
 
     # Archetype signals — flatten all lists
     all_archetype_signals = []
     for v in valid:
-        all_archetype_signals.extend(v["b2"].get("archetype_signals", []))
+        all_archetype_signals.extend(v["b1"].get("archetype_signals", []))
     archetype_counter = Counter(all_archetype_signals)
 
     # Transformation & social proof rates
-    transformation_count = sum(1 for v in valid if v["b2"].get("transformation_proof") is True)
-    social_proof_count = sum(1 for v in valid if v["b2"].get("social_proof_present") is True)
-    coa_count = sum(1 for v in valid if v["b2"].get("coa_lab_present") is True)
+    transformation_count = sum(1 for v in valid if v["b1"].get("transformation_proof") is True)
+    social_proof_count = sum(1 for v in valid if v["b1"].get("social_proof_present") is True)
+    coa_count = sum(1 for v in valid if v["b1"].get("coa_lab_present") is True)
 
     # Pain point clarity average
-    clarity_scores = [v["b2"].get("pain_point_clarity", 0) for v in valid if v["b2"].get("pain_point_clarity")]
+    clarity_scores = [v["b1"].get("pain_point_clarity", 0) for v in valid if v["b1"].get("pain_point_clarity")]
     avg_clarity = sum(clarity_scores) / len(clarity_scores) if clarity_scores else 0
 
-    # Video durations from b1
+    # Video durations
     durations = [
         v["b1"].get("duration_seconds", 0)
         for v in valid
-        if v.get("b1") and v["b1"].get("duration_seconds", 0) > 0
+        if v["b1"].get("duration_seconds", 0) > 0
     ]
     avg_duration = int(sum(durations) / len(durations)) if durations else 0
 
-    # Per-video summary (hook + narrative + pain_point for each)
+    # Per-video summary
     video_summaries = []
     for i, v in enumerate(valid, 1):
-        b2 = v["b2"]
-        b1 = v.get("b1") or {}
-        hook_text = b1.get("hook_text", "")[:120] if b1.get("hook_text") else ""
+        b1 = v["b1"]
+        hook_text = (b1.get("hook_text") or "")[:120]
+        source = b1.get("_source", "unknown")
         video_summaries.append(
-            f"  Video {i}: hook={b2.get('hook_type')} | narrative={b2.get('narrative_arc')} | "
-            f"pain={b2.get('pain_point')} | cta={b2.get('cta_type')} | "
-            f"product_method={b2.get('product_integration_method')} | "
-            f"transform={b2.get('transformation_proof')} | social_proof={b2.get('social_proof_present')} | "
-            f"clarity={b2.get('pain_point_clarity')} | "
+            f"  Video {i} [{source}]: hook={b1.get('hook_type')} | narrative={b1.get('narrative_arc')} | "
+            f"pain={b1.get('pain_point')} | cta={b1.get('cta_type')} | "
+            f"product_method={b1.get('product_integration_method')} | "
+            f"transform={b1.get('transformation_proof')} | social_proof={b1.get('social_proof_present')} | "
+            f"clarity={b1.get('pain_point_clarity')} | "
             f"hook_text=\"{hook_text}\""
         )
 
@@ -144,9 +146,9 @@ async def run(job: dict, emit: Callable) -> None:
 
     emit("progress", {"stage": "C", "message": "Building creator profile..."})
 
-    valid_count = sum(1 for v in analyzed_videos if v.get("b2") is not None)
+    valid_count = sum(1 for v in analyzed_videos if v.get("b1") is not None)
     if valid_count == 0:
-        raise RuntimeError("Stage C: no videos with B2 pattern data — cannot profile creator.")
+        raise RuntimeError("Stage C: no analyzed videos — cannot profile creator.")
 
     user_prompt = _build_user_prompt(analyzed_videos)
 

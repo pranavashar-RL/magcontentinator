@@ -54,14 +54,14 @@ def _build_user_prompt(analyzed_videos: list, profile: dict) -> str:
     transcripts = []
     for v in top5:
         b1 = v.get("b1") or {}
-        transcript = b1.get("transcript", "").strip()
+        transcript = (b1.get("full_transcript") or b1.get("transcript") or "").strip()
         if not transcript:
-            # Fall back to concatenating beat audio lines
+            # Fall back to concatenating beat scripts
             beats = b1.get("beats", [])
-            audio_lines = [
-                b.get("audio", "") for b in beats if b.get("audio")
-            ]
-            transcript = " ".join(audio_lines).strip()
+            transcript = " ".join(
+                b.get("script") or b.get("audio") or ""
+                for b in beats
+            ).strip()
 
         if transcript:
             transcripts.append(
