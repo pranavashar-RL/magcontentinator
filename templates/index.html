@@ -53,21 +53,11 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 .btn-gold:hover{background:var(--gold-lt)}
 .bico{background:var(--white);border:1px solid var(--border2);color:var(--ink3);padding:8px;border-radius:8px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;justify-content:center}
 .bico:hover{border-color:var(--gold);color:var(--gold)}
-.inspo-section{margin-top:14px;width:100%;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 15px;display:flex;flex-direction:column;gap:10px}
-.inspo-header{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:2px}
-.inspo-fl{font-size:11px;font-weight:500;color:var(--ink3);margin-bottom:5px}
-.inspo-fl span{font-weight:400;color:var(--ink4)}
 .chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:18px}
 .chip{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:4px 11px;font-size:12px;color:var(--ink2);cursor:pointer;transition:all .15s}
 .chip:hover{border-color:var(--gold);color:var(--ink)}
-.ribbon{height:36px;padding:0 32px;display:flex;align-items:center;gap:10px;background:var(--cream);border-bottom:1px solid var(--border);font-size:12px;color:var(--ink3);flex-shrink:0}
-.rdot{width:7px;height:7px;border-radius:50%;background:var(--gold);animation:blink 1.8s infinite;flex-shrink:0}
-.rdot.done{background:var(--mint);animation:none}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.rsteps{display:flex;gap:4px;margin-left:auto}
-.rs{width:16px;height:3px;border-radius:2px;background:var(--cream2)}
-.rs.done{background:var(--mint)}
-.rs.run{background:var(--gold)}
+
+/* ── Screen 2 — Config ─────────────────────────── */
 .s2-body{flex:1;max-width:600px;width:100%;margin:0 auto;padding:24px 24px 44px;display:flex;flex-direction:column;gap:24px}
 .ih{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:26px}
 .ih-title{font-size:21px;font-weight:300;letter-spacing:-.02em;margin-bottom:5px}
@@ -91,7 +81,50 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 .tog::after{content:'';position:absolute;width:11px;height:11px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.12)}
 .tog.on::after{left:18px}
 .tog-l{font-size:12px;color:var(--ink3)}
-.s3-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.inspo-section{margin-top:14px;width:100%;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 15px;display:flex;flex-direction:column;gap:10px}
+.inspo-header{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:2px}
+.inspo-fl{font-size:11px;font-weight:500;color:var(--ink3);margin-bottom:5px}
+.inspo-fl span{font-weight:400;color:var(--ink4)}
+
+/* ── Screen 3 — Step Progress ──────────────────── */
+.progress-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;max-width:540px;margin:0 auto;width:100%}
+.progress-title{font-size:22px;font-weight:300;letter-spacing:-.02em;margin-bottom:32px;text-align:center}
+.step-list{width:100%;display:flex;flex-direction:column;gap:12px;margin-bottom:28px}
+.step-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--white);border:1px solid var(--border);border-radius:10px;transition:all .25s}
+.step-item.active{border-color:var(--gold);background:var(--gold-bg)}
+.step-item.done{border-color:var(--mint);background:var(--mint-bg)}
+.step-item.pending{opacity:.5}
+.step-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
+.step-icon .dot{width:8px;height:8px;border-radius:50%;background:var(--cream2)}
+.step-item.active .step-icon .dot{display:none}
+.step-item.done .step-icon .dot{display:none}
+.step-icon .spin-sm{display:none;width:16px;height:16px;border:2px solid var(--gold-lt);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite}
+.step-item.active .step-icon .spin-sm{display:block}
+.step-icon .check{display:none;color:var(--mint);font-weight:700;font-size:14px}
+.step-item.done .step-icon .check{display:block}
+.step-info{flex:1;min-width:0}
+.step-name{font-size:13px;font-weight:500;color:var(--ink3)}
+.step-item.active .step-name{color:var(--ink);font-weight:600}
+.step-item.done .step-name{color:var(--mint)}
+.step-bar{height:4px;background:var(--cream2);border-radius:2px;overflow:hidden;margin-top:5px}
+.step-bar-fill{height:100%;width:0%;border-radius:2px;transition:width .4s ease}
+.step-item.active .step-bar-fill{background:var(--gold);animation:barFill var(--bar-duration, 30s) linear forwards}
+.step-item.done .step-bar-fill{background:var(--mint);width:100%;animation:none}
+@keyframes barFill{from{width:5%}to{width:92%}}
+.step-eta{font-size:11px;color:var(--ink4);white-space:nowrap;min-width:40px;text-align:right}
+.step-item.active .step-eta{color:var(--gold);font-weight:600}
+.step-item.done .step-eta{color:var(--mint)}
+.eta-total{text-align:center;font-size:13px;color:var(--ink3);margin-bottom:20px}
+.eta-total strong{color:var(--ink2);font-weight:600}
+.transcript-fallback{display:none;text-align:center}
+.transcript-fallback .btn{font-size:12px;color:var(--ink3);border:1px solid var(--border2);background:var(--white);padding:8px 16px;border-radius:8px}
+.transcript-fallback .btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* ── Screen 4 — Briefs ─────────────────────────── */
+.s3-nav-meta{display:flex;align-items:center;gap:8px}
+.s3-handle{font-size:12px;color:var(--ink3)}
+.s3-handle strong{color:var(--ink2);font-weight:600}
+.s4-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
 .brief-tabs{display:flex;justify-content:center;gap:0;padding:16px 32px 0;background:var(--white);border-bottom:1px solid var(--border);flex-shrink:0}
 .btab{padding:10px 32px;font-size:13px;font-weight:500;color:var(--ink3);border:1px solid var(--border);border-bottom:none;background:var(--cream);cursor:pointer;transition:all .15s;position:relative;bottom:-1px}
 .btab:first-child{border-radius:8px 0 0 0}
@@ -142,12 +175,8 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 .regen-l{font-size:13px;font-weight:500;color:var(--ink3);margin-bottom:8px}
 .regen-row{display:flex;gap:6px;align-items:flex-end}
 .regen-row textarea{flex:1;min-height:72px;font-size:12px}
-.ov{display:none;position:fixed;inset:0;background:rgba(248,245,240,.9);backdrop-filter:blur(6px);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.ov.show{display:flex}
-.spin{width:32px;height:32px;border:2px solid var(--cream2);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-.ov-t{font-size:14px;color:var(--ink2);text-align:center}
-.ov-s{font-size:12px;color:var(--ink3);text-align:center}
+.adopt-badge{display:inline-flex;align-items:center;gap:4px;background:var(--mint-bg);border:1px solid rgba(20,160,119,.2);border-radius:5px;padding:3px 8px;font-size:10px;font-weight:600;color:var(--mint)}
+
 /* Skeleton loading for brief generation */
 .skel-wrap{padding:32px;display:flex;flex-direction:column;gap:20px;width:100%}
 .skel-line{background:var(--cream2);border-radius:4px;animation:shimmer 1.5s infinite linear;background-size:200% 100%;background-image:linear-gradient(90deg,var(--cream2) 25%,var(--cream) 50%,var(--cream2) 75%)}
@@ -157,28 +186,14 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 .skel-block{height:80px;border-radius:8px}
 .skel-status{display:flex;align-items:center;gap:10px;padding:16px 0;color:var(--ink3);font-size:13px}
 .skel-spin{width:18px;height:18px;border:2px solid var(--cream2);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+
+/* Shared */
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(8px);background:var(--ink);color:var(--cream);padding:9px 18px;border-radius:7px;font-size:12px;opacity:0;pointer-events:none;z-index:999;transition:all .22s;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.spin{width:32px;height:32px;border:2px solid var(--cream2);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-thumb{background:var(--cream2);border-radius:2px}
-.lib-card{background:var(--mint-bg);border:1px solid rgba(20,160,119,.2);border-radius:12px;padding:16px;opacity:0;max-height:0;overflow:hidden;transition:opacity .3s ease,max-height .35s ease,padding .3s ease;padding-top:0;padding-bottom:0}
-.lib-card.show{opacity:1;max-height:600px;padding:16px}
-.lib-card.skeleton{opacity:0.55}
-.lib-card-head{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mint);margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.lib-row{display:flex;flex-direction:column;gap:6px}
-.lib-brief{background:var(--white);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;align-items:flex-start;gap:8px}
-.lib-brief-num{font-size:10px;font-weight:700;color:var(--mint);width:20px;flex-shrink:0;padding-top:1px}
-.lib-brief-body{flex:1}
-.lib-brief-label{font-size:11px;font-weight:600;color:var(--ink);margin-bottom:2px}
-.lib-brief-meta{font-size:10px;color:var(--ink3)}
-.lib-brief-chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .15s}
-.lib-brief-chk.on{background:var(--mint);border-color:var(--mint)}
-.lib-brief-chk.on::after{content:'✓';font-size:9px;color:#fff;font-weight:700}
-.lib-skip{margin-top:8px;font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:7px}
-.adopt-badge{display:inline-flex;align-items:center;gap:4px;background:var(--mint-bg);border:1px solid rgba(20,160,119,.2);border-radius:5px;padding:3px 8px;font-size:10px;font-weight:600;color:var(--mint)}
-.s3-nav-meta{display:flex;align-items:center;gap:8px}
-.s3-handle{font-size:12px;color:var(--ink3)}
-.s3-handle strong{color:var(--ink2);font-weight:600}
 </style>
 </head>
 <body>
@@ -207,17 +222,17 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
     <div class="how-steps">
       <div class="how-step">
         <div class="how-num">Step 1</div>
-        <div class="how-title">🔍 Enter a creator</div>
+        <div class="how-title">Enter a creator</div>
         <div class="how-desc">We analyze their top videos and build a voice profile in ~3 min</div>
       </div>
       <div class="how-step">
         <div class="how-num">Step 2</div>
-        <div class="how-title">🎯 Set your intent</div>
-        <div class="how-desc">Pick a strategy and describe the angle — we handle the rest</div>
+        <div class="how-title">Configure intent</div>
+        <div class="how-desc">Pick a strategy, set your angle — we handle the rest</div>
       </div>
       <div class="how-step">
         <div class="how-num">Step 3</div>
-        <div class="how-title">📋 Get briefs + scores</div>
+        <div class="how-title">Get briefs + scores</div>
         <div class="how-desc">3 scored, beat-by-beat TikTok briefs ready to send to the creator</div>
       </div>
     </div>
@@ -227,7 +242,7 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
       <input type="text" id="hi" placeholder="tiktokhandle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')toS2()">
     </div>
 
-    <button class="btn btn-primary" onclick="toS2()">Continue →</button>
+    <button class="btn btn-primary" onclick="toS2()">Continue &rarr;</button>
 
     <div class="chips">
       <span class="chip" onclick="sh('rphreviews')">rphreviews</span>
@@ -235,23 +250,11 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
       <span class="chip" onclick="sh('nurselexa')">nurselexa</span>
       <span class="chip" onclick="sh('patrickbankroll')">patrickbankroll</span>
     </div>
-
-    <div style="margin-top:14px;width:100%">
-      <button onclick="toggleInspo(this)" class="btn btn-ghost" style="font-size:11px;color:var(--ink4);padding:4px 0;width:100%;text-align:left">
-        + Add inspiration URLs or notes <span style="opacity:.5">(optional)</span>
-      </button>
-      <div id="inspoPanel" style="display:none;flex-direction:column;gap:10px;margin-top:10px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 15px">
-        <div class="inspo-fl">Reference URLs <span>(comma-separated TikTok links)</span></div>
-        <input type="text" id="inspoUrls" placeholder="https://tiktok.com/@creator/video/..." style="padding-left:13px;font-size:13px">
-        <div class="inspo-fl" style="margin-top:6px">Notes <span>(angles, tone, vibes to borrow)</span></div>
-        <textarea id="inspoTa" placeholder="e.g. 'Love how she explains it simply, gym setting, 30–40s'" style="min-height:56px"></textarea>
-      </div>
-    </div>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════════
-     SCREEN 2 — Intent Setting
+     SCREEN 2 — Config (pure config, no loading)
 ═══════════════════════════════════════════ -->
 <div class="screen" id="s2">
   <nav>
@@ -264,50 +267,41 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
         <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
       </div>
     </a>
-    <span class="nav-r" id="s2Tag">@— · analyzing</span>
+    <span class="nav-r" id="s2Tag">@— · configuring</span>
   </nav>
-
-  <div class="ribbon">
-    <div class="rdot" id="rdot"></div>
-    <span id="ribTxt">Starting analysis…</span>
-    <button class="btn btn-sec" id="skipBtn" onclick="skipToGenerate()" style="display:none;margin-left:10px;padding:4px 12px;font-size:11px">Taking long? → Use transcripts</button>
-    <div class="rsteps">
-      <div class="rs" id="rs0"></div>
-      <div class="rs" id="rs1"></div>
-      <div class="rs" id="rs2"></div>
-      <div class="rs" id="rs3"></div>
-      <div class="rs" id="rs4"></div>
-    </div>
-  </div>
-  <div id="ribbonDetail" style="font-size:11px;color:var(--ink4);text-align:center;padding:4px 0 0;min-height:16px"></div>
 
   <div class="s2-body">
     <div class="ih">
-      <div class="ih-title">Brief intent for <strong id="s2hi">@—</strong></div>
-      <div class="ih-sub">Choose a strategy and describe what you want to achieve. We'll combine creator voice + library patterns to build 3 scored briefs.</div>
+      <div class="ih-title">Configuring for <strong id="s2hi">@—</strong></div>
+      <div class="ih-sub">Choose a strategy and describe what you want to achieve. We'll analyze their top videos, build a voice profile, and generate 3 scored briefs.</div>
 
       <div class="sec-label">Strategy</div>
       <div class="sg">
         <div class="si sel" onclick="pickStrategy(this,'creators-best')">
           <div class="si-name">Creator's Best</div>
           <div class="si-desc">Lean into their top-performing formats and proven hooks</div>
-          <span class="si-ck">✓</span>
+          <span class="si-ck">&check;</span>
         </div>
         <div class="si" onclick="pickStrategy(this,'gmv-max')">
           <div class="si-name">GMV Max</div>
           <div class="si-desc">Optimize for conversion — pain points with highest purchase intent</div>
-          <span class="si-ck">✓</span>
+          <span class="si-ck">&check;</span>
         </div>
         <div class="si" onclick="pickStrategy(this,'sleep-score')">
           <div class="si-name">Sleep Score</div>
           <div class="si-desc">Focus on sleep + relaxation angles shown to drive AshwaMag sales</div>
-          <span class="si-ck">✓</span>
+          <span class="si-ck">&check;</span>
         </div>
         <div class="si" onclick="pickStrategy(this,'custom')">
           <div class="si-name">Custom</div>
           <div class="si-desc">Drive fully from your angle input below — no library constraints</div>
-          <span class="si-ck">✓</span>
+          <span class="si-ck">&check;</span>
         </div>
+      </div>
+
+      <div class="tog-row">
+        <div class="tog on" id="libToggle" onclick="toggleLibrary()"></div>
+        <span class="tog-l">Include GMV library data</span>
       </div>
 
       <div class="ia-label">
@@ -317,11 +311,20 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
         <textarea id="intentTa" placeholder="e.g. 'Focus on the magnesium + ashwagandha combo for stressed moms who can't sleep, gym setting, keep it under 40s'"></textarea>
       </div>
 
-      <button class="btn btn-primary" onclick="generate()">Generate 3 briefs →</button>
-    </div>
+      <div style="margin-bottom:16px">
+        <button onclick="toggleInspo(this)" class="btn btn-ghost" style="font-size:11px;color:var(--ink4);padding:4px 0;width:100%;text-align:left">
+          + Add inspiration URLs or notes <span style="opacity:.5">(optional)</span>
+        </button>
+        <div id="inspoPanel" style="display:none;flex-direction:column;gap:10px;margin-top:10px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 15px">
+          <div class="inspo-fl">Reference URLs <span>(comma-separated TikTok links)</span></div>
+          <input type="text" id="inspoUrls" placeholder="https://tiktok.com/@creator/video/..." style="padding-left:13px;font-size:13px">
+          <div class="inspo-fl" style="margin-top:6px">Notes <span>(angles, tone, vibes to borrow)</span></div>
+          <textarea id="inspoTa" placeholder="e.g. 'Love how she explains it simply, gym setting, 30–40s'" style="min-height:56px"></textarea>
+        </div>
+      </div>
 
-    <!-- Library intel card — populated by JS when preflight_complete fires -->
-    <div class="lib-card" id="libCard"></div>
+      <button class="btn btn-primary" onclick="startAnalysis()">Analyze &amp; Generate &rarr;</button>
+    </div>
 
     <div style="font-size:11px;color:var(--ink4);text-align:center;line-height:1.7">
       Video analysis takes ~2–3 min · briefs built from visual AI analysis + voice fingerprint + GMV library patterns
@@ -330,9 +333,88 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 </div>
 
 <!-- ═══════════════════════════════════════════
-     SCREEN 3 — Briefs
+     SCREEN 3 — Live Step Progress + ETA
 ═══════════════════════════════════════════ -->
 <div class="screen" id="s3">
+  <nav>
+    <a class="logo-wrap" href="#" onclick="return false;">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <rect width="26" height="26" rx="6" fill="#0d3d28"/>
+        <path d="M8 18V9l4 6 4-6v9" stroke="#17e79c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="logo-wordmark">
+        <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
+      </div>
+    </a>
+    <span class="nav-r" id="s3Tag">@— · analyzing</span>
+  </nav>
+
+  <div class="progress-body">
+    <div class="progress-title">Analyzing <strong id="s3Handle">@—</strong></div>
+
+    <div class="step-list" id="stepList">
+      <div class="step-item active" id="step-0" style="--bar-duration:30s">
+        <div class="step-icon"><span class="dot"></span><div class="spin-sm"></div><span class="check">&check;</span></div>
+        <div class="step-info">
+          <div class="step-name">Step 1 — Fetching top videos</div>
+          <div class="step-bar"><div class="step-bar-fill"></div></div>
+        </div>
+        <div class="step-eta">~30s</div>
+      </div>
+      <div class="step-item pending" id="step-1" style="--bar-duration:60s">
+        <div class="step-icon"><span class="dot"></span><div class="spin-sm"></div><span class="check">&check;</span></div>
+        <div class="step-info">
+          <div class="step-name">Step 2 — Analyzing with Gemini</div>
+          <div class="step-bar"><div class="step-bar-fill"></div></div>
+        </div>
+        <div class="step-eta">~60s</div>
+      </div>
+      <div class="step-item pending" id="step-2" style="--bar-duration:10s">
+        <div class="step-icon"><span class="dot"></span><div class="spin-sm"></div><span class="check">&check;</span></div>
+        <div class="step-info">
+          <div class="step-name">Step 3 — Building creator profile</div>
+          <div class="step-bar"><div class="step-bar-fill"></div></div>
+        </div>
+        <div class="step-eta">~10s</div>
+      </div>
+      <div class="step-item pending" id="step-3" style="--bar-duration:10s">
+        <div class="step-icon"><span class="dot"></span><div class="spin-sm"></div><span class="check">&check;</span></div>
+        <div class="step-info">
+          <div class="step-name">Step 4 — Fingerprinting voice</div>
+          <div class="step-bar"><div class="step-bar-fill"></div></div>
+        </div>
+        <div class="step-eta">~10s</div>
+      </div>
+      <div class="step-item pending" id="step-4" style="--bar-duration:5s">
+        <div class="step-icon"><span class="dot"></span><div class="spin-sm"></div><span class="check">&check;</span></div>
+        <div class="step-info">
+          <div class="step-name">Step 5 — Matching library patterns</div>
+          <div class="step-bar"><div class="step-bar-fill"></div></div>
+        </div>
+        <div class="step-eta">~5s</div>
+      </div>
+      <div class="step-item pending" id="step-5" style="--bar-duration:25s">
+        <div class="step-icon"><span class="dot"></span><div class="spin-sm"></div><span class="check">&check;</span></div>
+        <div class="step-info">
+          <div class="step-name">Step 6 — Generating briefs</div>
+          <div class="step-bar"><div class="step-bar-fill"></div></div>
+        </div>
+        <div class="step-eta">~25s</div>
+      </div>
+    </div>
+
+    <div class="eta-total" id="etaTotal">Total estimated time: <strong>~2 min 20 sec</strong></div>
+
+    <div class="transcript-fallback" id="transcriptFallback">
+      <button class="btn" onclick="skipToTranscripts()">Gemini taking too long? Switch to transcript analysis</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     SCREEN 4 — Briefs
+═══════════════════════════════════════════ -->
+<div class="screen" id="s4">
   <nav>
     <a class="logo-wrap" href="#" onclick="toS1();return false;">
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
@@ -344,13 +426,13 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
       </div>
     </a>
     <div class="s3-nav-meta">
-      <span class="s3-handle"><strong id="s3h">@—</strong></span>
-      <span class="nav-r">· <span id="s3sp">AshwaMag</span></span>
-      <button class="btn btn-ghost" onclick="toS1()" style="margin-left:8px">← New creator</button>
+      <span class="s3-handle"><strong id="s4h">@—</strong></span>
+      <span class="nav-r">· <span id="s4sp">AshwaMag</span></span>
+      <button class="btn btn-ghost" onclick="toS1()" style="margin-left:8px">&larr; New creator</button>
     </div>
   </nav>
 
-  <div class="s3-body">
+  <div class="s4-body">
     <div class="brief-tabs">
       <div class="btab active" id="tab1" onclick="showBrief(0)"><span class="tab-num">01</span>Brief 1</div>
       <div class="btab" id="tab2" onclick="showBrief(1)"><span class="tab-num">02</span>Brief 2</div>
@@ -358,33 +440,17 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
     </div>
 
     <div class="brief-panes">
-      <!-- Brief 1 -->
       <div class="brief-left" id="bl1"></div>
       <div class="brief-right" id="br1"></div>
-
-      <!-- Brief 2 (hidden by default) -->
       <div class="brief-left" id="bl2" style="display:none"></div>
       <div class="brief-right" id="br2" style="display:none"></div>
-
-      <!-- Brief 3 (hidden by default) -->
       <div class="brief-left" id="bl3" style="display:none"></div>
       <div class="brief-right" id="br3" style="display:none"></div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
-     OVERLAY
-═══════════════════════════════════════════ -->
-<div class="ov" id="ov">
-  <div class="spin"></div>
-  <div class="ov-t" id="ovt">Working…</div>
-  <div class="ov-s" id="ovs"></div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     TOAST
-═══════════════════════════════════════════ -->
+<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
@@ -393,144 +459,60 @@ let jobId = null;
 let currentBriefs = [];
 let currentBriefIdx = 0;
 let selectedStrategy = 'creators-best';
-let libSelections = {brief_1: true, brief_2: true, brief_3: true};
 let skipLibrary = false;
 let eventSource = null;
 let handle = '';
-let regenInProgress = null; // briefIdx being regenerated, or null
+let regenInProgress = null;
 
-// ── SSE Connection ─────────────────────────────────────────────────────
-function connectSSE() {
-  if (!jobId) return;
-  eventSource = new EventSource(`/api/stream/${jobId}`);
+// Step progress state
+let currentStepIdx = 0;
+let stepStartTimes = {};
+let analyzerStepStart = null;
+let _transcriptTimer = null;
+let _etaInterval = null;
+let totalEtaSec = 140; // 30+60+10+10+5+25
 
-  const STAGE_DETAIL = {
-    'scraper':     'Fetching top videos from TikTok…',
-    'analyzer':    'Analyzing video content with Gemini AI…',
-    'profiler':    'Building creator profile…',
-    'voice':       'Fingerprinting creator voice & style…',
-    'library':     'Matching GMV library patterns…',
-    'inspiration': 'Processing inspiration references…',
-    'generator':   'Generating briefs…',
-  };
-  eventSource.addEventListener('progress', (e) => {
-    const d = JSON.parse(e.data);
-    updateRibbon(d.message);
-    updateRibbonSteps(d.stage);
-    const detail = document.getElementById('ribbonDetail');
-    if (detail && STAGE_DETAIL[d.stage]) detail.textContent = STAGE_DETAIL[d.stage];
-    // If on S3 (skeleton showing), update status line in skeleton
-    if (document.getElementById('s3').classList.contains('active') && d.stage === 'generator') {
-      document.querySelectorAll('.skel-status').forEach(el => {
-        el.innerHTML = `<div class="skel-spin"></div>${d.message}`;
-      });
-    }
-  });
+const STEPS = [
+  {stage: 'scraper',   eta: 30},
+  {stage: 'analyzer',  eta: 60},
+  {stage: 'profiler',  eta: 10},
+  {stage: 'voice',     eta: 10},
+  {stage: 'library',   eta: 5},
+  {stage: 'generator', eta: 25},
+];
 
-  eventSource.addEventListener('library_intel', (e) => {
-    const d = JSON.parse(e.data);
-    if (d.available) {
-      showLibraryCard(d);
-    } else {
-      // No library data — collapse the skeleton card smoothly
-      const lc = document.getElementById('libCard');
-      if (lc) { lc.classList.remove('show', 'skeleton'); }
-    }
-  });
+const STAGE_TO_STEP = {};
+STEPS.forEach((s, i) => { STAGE_TO_STEP[s.stage] = i; });
+// Legacy stage names from ribbon
+STAGE_TO_STEP['A'] = 0;
+STAGE_TO_STEP['B'] = 1; STAGE_TO_STEP['B1'] = 1; STAGE_TO_STEP['B2'] = 1;
+STAGE_TO_STEP['C'] = 2;
+STAGE_TO_STEP['D'] = 3;
+STAGE_TO_STEP['LIB'] = 4; STAGE_TO_STEP['INSPO'] = 4;
+STAGE_TO_STEP['inspiration'] = 4;
 
-  eventSource.addEventListener('preflight_complete', (e) => {
-    const d = JSON.parse(e.data);
-    updateRibbon('✓ @' + handle + ' analyzed — ' + d.videos_analyzed + ' videos, ' + d.archetype + ' archetype');
-    setRibbonDone();
-    document.getElementById('skipBtn').style.display = 'none';
-    if (_skipBtnTimer) { clearTimeout(_skipBtnTimer); _skipBtnTimer = null; }
-  });
-
-  eventSource.addEventListener('complete', (e) => {
-    const d = JSON.parse(e.data);
-    _clearGenerationPoller();
-    if (regenInProgress !== null) {
-      // Non-blocking regen — update only the tab that regenerated
-      const idx = regenInProgress;
-      regenInProgress = null;
-      currentBriefs = d.briefs;
-      renderBriefLeft(idx + 1, d.briefs[idx]);
-      renderBriefRight(idx + 1, d.briefs[idx]);
-      const tab = document.getElementById('tab' + (idx + 1));
-      if (tab && d.briefs[idx]) {
-        const hookShort = d.briefs[idx].hook_text ? d.briefs[idx].hook_text.substring(0, 35) + '…' : 'Brief ' + (idx + 1);
-        tab.innerHTML = `<span class="tab-num">0${idx + 1}</span>${escHtml(hookShort)}`;
-      }
-      showToast('Brief ' + (idx + 1) + ' regenerated');
-    } else {
-      // Initial generation — go to S3
-      currentBriefs = d.briefs;
-      renderBriefs(d.briefs);
-      showScreen('s3');
-      if (eventSource) { eventSource.close(); eventSource = null; }
-    }
-  });
-
-  eventSource.addEventListener('error', (e) => {
-    let d = {};
-    try { d = JSON.parse(e.data || '{}'); } catch(_) {}
-    hideOverlay();
-    showToast('Error: ' + (d.message || 'Something went wrong'));
-  });
-}
-
-// ── Skip-to-generate (user override when preflight is slow) ────────────
-let _skipBtnTimer = null;
-function _scheduleSkipButton() {
-  if (_skipBtnTimer) clearTimeout(_skipBtnTimer);
-  document.getElementById('skipBtn').style.display = 'none';
-  // Show "Taking long?" button after 45s if preflight not complete
-  _skipBtnTimer = setTimeout(() => {
-    const ribbon = document.getElementById('ribTxt').textContent || '';
-    const isDone = ribbon.startsWith('✓');
-    if (!isDone) document.getElementById('skipBtn').style.display = '';
-  }, 45000);
-}
-async function skipToGenerate() {
-  document.getElementById('skipBtn').style.display = 'none';
-  if (_skipBtnTimer) { clearTimeout(_skipBtnTimer); _skipBtnTimer = null; }
-  updateRibbon('Switching to transcript analysis…');
-  // Tell the server to use transcript mode for this job
-  if (jobId) {
-    try { await fetch(`/api/skip-to-transcripts/${jobId}`, {method:'POST'}); } catch(_) {}
-  }
-  showToast('Switched to transcript analysis');
-}
-
-// ── Screen 2 transition — calls /api/start ─────────────────────────────
-async function toS2() {
+// ── S1 → S2: just navigate, no API call ────────────────────────────────
+function toS2() {
   const raw = document.getElementById('hi').value.trim().replace('@', '');
   handle = raw || '';
   if (!handle) { showToast('Enter a TikTok handle'); return; }
 
+  document.getElementById('s2Tag').textContent = '@' + handle + ' · configuring';
+  document.getElementById('s2hi').textContent = '@' + handle;
+  showScreen('s2');
+}
+
+// ── S2 → S3: collect config, call /api/start, show progress ────────────
+async function startAnalysis() {
   const inspoUrls = document.getElementById('inspoUrls').value.trim();
   const inspoNote = document.getElementById('inspoTa').value.trim();
   const urlList = inspoUrls ? inspoUrls.split(',').map(u => u.trim()).filter(Boolean) : [];
 
-  document.getElementById('s2Tag').textContent = '@' + handle + ' · analyzing';
-  document.getElementById('s2hi').textContent = '@' + handle;
-  showScreen('s2');
-
-  // Reset ribbon
-  document.getElementById('ribTxt').textContent = 'Starting analysis…';
-  document.getElementById('rdot').classList.remove('done');
-  document.querySelectorAll('.rs').forEach(s => s.classList.remove('run', 'done'));
-  _scheduleSkipButton();
-
-  // Reset lib card — show skeleton immediately so no jarring pop-in later
-  const lc = document.getElementById('libCard');
-  if (lc) {
-    lc.innerHTML = `<div class="lib-card-head"><div class="skel-spin" style="width:10px;height:10px;border-width:1.5px;display:inline-block;vertical-align:middle;margin-right:4px"></div>Fetching library intel…</div><div style="font-size:11px;color:var(--ink4);line-height:1.7">Matching creator archetype to $1.73M GMV data…</div>`;
-    lc.classList.remove('skeleton');
-    lc.classList.add('show', 'skeleton');
-  }
-  libSelections = {brief_1: true, brief_2: true, brief_3: true};
-  skipLibrary = false;
+  // Setup S3
+  document.getElementById('s3Tag').textContent = '@' + handle + ' · analyzing';
+  document.getElementById('s3Handle').textContent = '@' + handle;
+  resetProgress();
+  showScreen('s3');
 
   try {
     const res = await fetch('/api/start', {
@@ -543,13 +525,232 @@ async function toS2() {
     connectSSE();
   } catch(err) {
     showToast('Failed to start: ' + err.message);
+    showScreen('s2');
+  }
+}
+
+// ── Progress tracking ──────────────────────────────────────────────────
+function resetProgress() {
+  currentStepIdx = 0;
+  stepStartTimes = {};
+  analyzerStepStart = null;
+  totalEtaSec = 140;
+
+  // Reset all steps
+  for (let i = 0; i < STEPS.length; i++) {
+    const el = document.getElementById('step-' + i);
+    if (!el) continue;
+    el.className = 'step-item ' + (i === 0 ? 'active' : 'pending');
+    el.style.setProperty('--bar-duration', STEPS[i].eta + 's');
+    const eta = el.querySelector('.step-eta');
+    if (eta) eta.textContent = '~' + STEPS[i].eta + 's';
+  }
+
+  stepStartTimes[0] = Date.now();
+
+  // Hide transcript fallback
+  document.getElementById('transcriptFallback').style.display = 'none';
+  if (_transcriptTimer) { clearTimeout(_transcriptTimer); _transcriptTimer = null; }
+
+  // Start ETA countdown
+  if (_etaInterval) clearInterval(_etaInterval);
+  const startTime = Date.now();
+  updateEtaDisplay(totalEtaSec);
+  _etaInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const remaining = Math.max(0, totalEtaSec - elapsed);
+    updateEtaDisplay(remaining);
+    if (remaining <= 0) clearInterval(_etaInterval);
+  }, 1000);
+}
+
+function updateEtaDisplay(sec) {
+  const el = document.getElementById('etaTotal');
+  if (!el) return;
+  if (sec <= 0) {
+    el.innerHTML = 'Almost done...';
+    return;
+  }
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  const txt = m > 0 ? `~${m} min ${s > 0 ? s + ' sec' : ''}` : `~${s} sec`;
+  el.innerHTML = `Estimated time remaining: <strong>${txt}</strong>`;
+}
+
+function advanceToStep(stepIdx) {
+  if (stepIdx <= currentStepIdx && stepIdx !== currentStepIdx) return;
+  if (stepIdx === currentStepIdx) return; // already there
+
+  // Mark all previous steps as done
+  for (let i = 0; i <= stepIdx - 1; i++) {
+    const el = document.getElementById('step-' + i);
+    if (el) {
+      el.className = 'step-item done';
+      const eta = el.querySelector('.step-eta');
+      if (eta) {
+        const elapsed = stepStartTimes[i] ? Math.round((Date.now() - stepStartTimes[i]) / 1000) : 0;
+        eta.textContent = elapsed + 's';
+      }
+    }
+  }
+
+  // Mark current step as active
+  const cur = document.getElementById('step-' + stepIdx);
+  if (cur) {
+    cur.className = 'step-item active';
+  }
+
+  // Mark remaining as pending
+  for (let i = stepIdx + 1; i < STEPS.length; i++) {
+    const el = document.getElementById('step-' + i);
+    if (el) el.className = 'step-item pending';
+  }
+
+  stepStartTimes[stepIdx] = Date.now();
+  currentStepIdx = stepIdx;
+
+  // Transcript fallback: only if entering analyzer step (step 1)
+  if (stepIdx === 1) {
+    analyzerStepStart = Date.now();
+    scheduleTranscriptFallback();
+  } else {
+    // Left analyzer step — hide fallback
+    document.getElementById('transcriptFallback').style.display = 'none';
+    if (_transcriptTimer) { clearTimeout(_transcriptTimer); _transcriptTimer = null; }
+  }
+}
+
+function markAllStepsDone() {
+  for (let i = 0; i < STEPS.length; i++) {
+    const el = document.getElementById('step-' + i);
+    if (el) {
+      el.className = 'step-item done';
+      const eta = el.querySelector('.step-eta');
+      if (eta && stepStartTimes[i]) {
+        const elapsed = Math.round((Date.now() - stepStartTimes[i]) / 1000);
+        eta.textContent = elapsed + 's';
+      }
+    }
+  }
+  if (_etaInterval) clearInterval(_etaInterval);
+  updateEtaDisplay(0);
+}
+
+// ── Transcript fallback — smart trigger ────────────────────────────────
+function scheduleTranscriptFallback() {
+  if (_transcriptTimer) clearTimeout(_transcriptTimer);
+  _transcriptTimer = setTimeout(() => {
+    // Only show if STILL on analyzer step
+    if (currentStepIdx === 1) {
+      document.getElementById('transcriptFallback').style.display = '';
+    }
+  }, 45000);
+}
+
+async function skipToTranscripts() {
+  document.getElementById('transcriptFallback').style.display = 'none';
+  if (_transcriptTimer) { clearTimeout(_transcriptTimer); _transcriptTimer = null; }
+  if (jobId) {
+    try { await fetch(`/api/skip-to-transcripts/${jobId}`, {method:'POST'}); } catch(_) {}
+  }
+  showToast('Switched to transcript analysis');
+}
+
+// ── SSE Connection ─────────────────────────────────────────────────────
+function connectSSE() {
+  if (!jobId) return;
+  eventSource = new EventSource(`/api/stream/${jobId}`);
+
+  eventSource.addEventListener('progress', (e) => {
+    const d = JSON.parse(e.data);
+    const stepIdx = STAGE_TO_STEP[d.stage];
+    if (stepIdx !== undefined && stepIdx > currentStepIdx) {
+      advanceToStep(stepIdx);
+    }
+  });
+
+  eventSource.addEventListener('library_intel', (e) => {
+    // Library intel received — no UI action needed (toggle handles it)
+  });
+
+  eventSource.addEventListener('preflight_complete', (e) => {
+    const d = JSON.parse(e.data);
+    // Mark steps 0-4 done (preflight covers scraper through library)
+    for (let i = 0; i <= 4; i++) {
+      const el = document.getElementById('step-' + i);
+      if (el) el.className = 'step-item done';
+    }
+    // Activate step 5 (generator)
+    advanceToStep(5);
+    currentStepIdx = 5;
+    stepStartTimes[5] = Date.now();
+    const genStep = document.getElementById('step-5');
+    if (genStep) genStep.className = 'step-item active';
+
+    // Hide transcript fallback
+    document.getElementById('transcriptFallback').style.display = 'none';
+    if (_transcriptTimer) { clearTimeout(_transcriptTimer); _transcriptTimer = null; }
+
+    // Auto-call generate with config from S2
+    autoGenerate();
+  });
+
+  eventSource.addEventListener('complete', (e) => {
+    const d = JSON.parse(e.data);
+    _clearGenerationPoller();
+    markAllStepsDone();
+
+    if (regenInProgress !== null) {
+      const idx = regenInProgress;
+      regenInProgress = null;
+      currentBriefs = d.briefs;
+      renderBriefLeft(idx + 1, d.briefs[idx]);
+      renderBriefRight(idx + 1, d.briefs[idx]);
+      const tab = document.getElementById('tab' + (idx + 1));
+      if (tab && d.briefs[idx]) {
+        const hookShort = d.briefs[idx].hook_text ? d.briefs[idx].hook_text.substring(0, 35) + '...' : 'Brief ' + (idx + 1);
+        tab.innerHTML = `<span class="tab-num">0${idx + 1}</span>${escHtml(hookShort)}`;
+      }
+      showToast('Brief ' + (idx + 1) + ' regenerated');
+    } else {
+      currentBriefs = d.briefs;
+      renderBriefs(d.briefs);
+      showScreen('s4');
+      if (eventSource) { eventSource.close(); eventSource = null; }
+    }
+  });
+
+  eventSource.addEventListener('error', (e) => {
+    let d = {};
+    try { d = JSON.parse(e.data || '{}'); } catch(_) {}
+    showToast('Error: ' + (d.message || 'Something went wrong'));
+  });
+}
+
+// ── Auto-generate (called on preflight_complete) ───────────────────────
+async function autoGenerate() {
+  const intent = document.getElementById('intentTa').value.trim();
+  try {
+    await fetch(`/api/generate/${jobId}`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        intent,
+        strategy: selectedStrategy,
+        skip_library: skipLibrary,
+        library_selections: skipLibrary ? {} : {brief_1: true, brief_2: true, brief_3: true}
+      })
+    });
+    _startGenerationPoller();
+  } catch(err) {
+    showToast('Error: ' + err.message);
   }
 }
 
 // ── Brief skeleton (shown while generating) ────────────────────────────
 function showBriefSkeleton(msg) {
   const skels = `<div class="skel-wrap">
-    <div class="skel-status"><div class="skel-spin"></div>${msg || 'Generating briefs…'}</div>
+    <div class="skel-status"><div class="skel-spin"></div>${msg || 'Generating briefs...'}</div>
     <div class="skel-line skel-title"></div>
     <div class="skel-line skel-sub" style="width:55%"></div>
     <div class="skel-line skel-block"></div>
@@ -561,33 +762,7 @@ function showBriefSkeleton(msg) {
   ['br1','br2','br3'].forEach(id => { document.getElementById(id).innerHTML = ''; });
 }
 
-// ── Generate — calls /api/generate/:jobId ──────────────────────────────
-async function generate() {
-  const intent = document.getElementById('intentTa').value.trim();
-  // Immediately transition to S3 with skeleton — no blocking overlay
-  currentBriefs = [];
-  document.getElementById('s3h').textContent = '@' + handle;
-  showBriefSkeleton('Generating 3 briefs · voice profile · library patterns · your intent');
-  showScreen('s3');
-  try {
-    await fetch(`/api/generate/${jobId}`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        intent,
-        strategy: selectedStrategy,
-        library_selections: libSelections,
-        skip_library: skipLibrary
-      })
-    });
-    // Results come via SSE 'complete' event — poll as fallback if SSE drops
-    _startGenerationPoller();
-  } catch(err) {
-    showToast('Error: ' + err.message);
-    showScreen('s2');  // bounce back on network error
-  }
-}
-
+// ── Generation poller (fallback if SSE drops) ──────────────────────────
 let _genPollTimer = null;
 function _startGenerationPoller() {
   _clearGenerationPoller();
@@ -600,11 +775,11 @@ function _startGenerationPoller() {
       const d = await r.json();
       if (d.status === 'complete' && d.briefs) {
         _clearGenerationPoller();
-        // SSE didn't deliver — use polled result (already on S3 with skeleton)
         if (!currentBriefs.length) {
           currentBriefs = d.briefs;
           renderBriefs(d.briefs);
-          showScreen('s3');
+          markAllStepsDone();
+          showScreen('s4');
         }
       } else if (d.status === 'error') {
         _clearGenerationPoller();
@@ -616,19 +791,18 @@ function _startGenerationPoller() {
       _genPollTimer = setTimeout(poll, 5000);
     }
   }
-  _genPollTimer = setTimeout(poll, 8000); // first check after 8s
+  _genPollTimer = setTimeout(poll, 8000);
 }
 function _clearGenerationPoller() {
   if (_genPollTimer) { clearTimeout(_genPollTimer); _genPollTimer = null; }
 }
 
-// ── Regen single brief — non-blocking per-tab spinner ──────────────────
+// ── Regen single brief ─────────────────────────────────────────────────
 async function regen(briefIdx) {
   const briefNum = briefIdx + 1;
   const ta = document.getElementById('rta' + briefNum);
   const feedback = ta ? ta.value.trim() : '';
 
-  // Per-tab spinner — other tabs stay accessible
   const tab = document.getElementById('tab' + briefNum);
   const origTabContent = tab ? tab.innerHTML : '';
   if (tab) tab.innerHTML = `<span class="tab-num">0${briefNum}</span><span class="skel-spin" style="display:inline-block;width:12px;height:12px;border-width:1.5px;vertical-align:middle;margin-left:4px"></span>`;
@@ -643,7 +817,6 @@ async function regen(briefIdx) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({feedback})
     });
-    // Result arrives via SSE 'complete' event — handled in connectSSE
   } catch(err) {
     if (tab) tab.innerHTML = origTabContent;
     regenInProgress = null;
@@ -651,7 +824,7 @@ async function regen(briefIdx) {
   }
 }
 
-// ── Render briefs from API response ───────────────────────────────────
+// ── Render briefs ──────────────────────────────────────────────────────
 function renderBriefs(briefs) {
   for (let i = 0; i < briefs.length; i++) {
     const b = briefs[i];
@@ -660,14 +833,14 @@ function renderBriefs(briefs) {
 
     const tab = document.getElementById('tab' + (i + 1));
     if (tab) {
-      const hookShort = b.hook_text ? b.hook_text.substring(0, 35) + '…' : 'Brief ' + (i + 1);
+      const hookShort = b.hook_text ? b.hook_text.substring(0, 35) + '...' : 'Brief ' + (i + 1);
       tab.innerHTML = `<span class="tab-num">0${i + 1}</span>${escHtml(hookShort)}`;
     }
   }
   showBrief(0);
-  document.getElementById('s3h').textContent = '@' + handle;
+  document.getElementById('s4h').textContent = '@' + handle;
   if (briefs[0]) {
-    document.getElementById('s3sp').textContent = briefs[0].pain_point || 'AshwaMag';
+    document.getElementById('s4sp').textContent = briefs[0].pain_point || 'AshwaMag';
   }
 }
 
@@ -679,18 +852,18 @@ function renderBriefLeft(num, b) {
     const isProd = beat.product_integration && beat.product_integration !== 'null' && beat.product_integration !== null;
     const rowClass = isProd ? ' class="pr"' : '';
     const badge = isProd ? `<br><span class="pbadge">&#x2B21; Product on screen</span>` : '';
-    const musicNote = beat.music ? `<br><span style="font-size:10px;color:var(--ink4)">♪ ${escHtml(beat.music)}</span>` : '';
+    const musicNote = beat.music ? `<br><span style="font-size:10px;color:var(--ink4)">\u266A ${escHtml(beat.music)}</span>` : '';
     return `<tr${rowClass}>
       <td class="t-time">${escHtml(beat.time_range || beat.time || '')}</td>
       <td class="t-act">${escHtml(beat.action || '')}${badge}${musicNote}</td>
-      <td class="t-ov">${escHtml(beat.text_overlay || '—')}</td>
-      <td class="t-au">${escHtml(beat.script || beat.audio || '—')}</td>
+      <td class="t-ov">${escHtml(beat.text_overlay || '\u2014')}</td>
+      <td class="t-au">${escHtml(beat.script || beat.audio || '\u2014')}</td>
     </tr>`;
   }).join('');
 
   const fullScriptHtml = b.full_script ? `
     <div class="mc">
-      <div class="mc-l" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">Full script ▾</div>
+      <div class="mc-l" style="cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">Full script \u25BE</div>
       <div class="mc-t" style="white-space:pre-wrap;font-family:inherit">${escHtml(b.full_script)}</div>
     </div>` : '';
 
@@ -703,13 +876,13 @@ function renderBriefLeft(num, b) {
   el.innerHTML = `
     <div class="b-ey">
       <span class="btag">Brief 0${num}</span>
-      <span class="atag">${escHtml(b.combo || '')} · ${escHtml(b.total_duration || '60s')}</span>
+      <span class="atag">${escHtml(b.combo || '')} \u00B7 ${escHtml(b.total_duration || '60s')}</span>
     </div>
     <div class="btitle">${escHtml(b.hook_text || '')}</div>
     <div class="hkcard">
-      <div class="hk-l">Hook · 0–3s</div>
+      <div class="hk-l">Hook \u00B7 0\u20133s</div>
       <div class="hk-t">${escHtml(b.hook_text || '')}</div>
-      ${b.hook_visual ? `<div style="font-size:11px;color:var(--ink3);margin-top:6px;font-style:italic">🎬 ${escHtml(b.hook_visual)}</div>` : ''}
+      ${b.hook_visual ? `<div style="font-size:11px;color:var(--ink3);margin-top:6px;font-style:italic">\uD83C\uDFAC ${escHtml(b.hook_visual)}</div>` : ''}
     </div>
     ${b.narrative_flow ? `<div style="font-size:12px;color:var(--ink3);margin-bottom:16px;padding:10px 12px;background:var(--bg);border-radius:6px;line-height:1.5">${escHtml(b.narrative_flow)}</div>` : ''}
     <div class="btw">
@@ -719,7 +892,7 @@ function renderBriefLeft(num, b) {
             <th>Time</th>
             <th>Action (Visual)</th>
             <th>Text Overlay</th>
-            <th>Script — verbatim</th>
+            <th>Script \u2014 verbatim</th>
           </tr>
         </thead>
         <tbody>${beatRows}</tbody>
@@ -732,7 +905,7 @@ function renderBriefLeft(num, b) {
       </div>
       <div class="mc">
         <div class="mc-l">Key claims</div>
-        <div class="mc-t">${(b.key_claims || []).map(c => '· ' + escHtml(c)).join('<br>')}</div>
+        <div class="mc-t">${(b.key_claims || []).map(c => '\u00B7 ' + escHtml(c)).join('<br>')}</div>
       </div>
       ${prodNotesHtml}
       ${fullScriptHtml}
@@ -745,7 +918,7 @@ function renderBriefRight(num, b) {
   if (!el) return;
   const cq = b.cq || {};
   const total = cq.cq_total || 0;
-  const grade = cq.cq_grade || '–';
+  const grade = cq.cq_grade || '\u2013';
   const adoption = b.adoption_pct || cq.adoption_pct || 0;
 
   const DIMS = [
@@ -771,7 +944,7 @@ function renderBriefRight(num, b) {
         <span class="cq-big-num">${(total / 100).toFixed(1)}</span>
         <span class="cq-grade">${grade}</span>
       </div>
-      <div style="font-size:11px;color:var(--ink4);margin-top:2px">CQ ${total}/1000 · 10-dimension score</div>
+      <div style="font-size:11px;color:var(--ink4);margin-top:2px">CQ ${total}/1000 \u00B7 10-dimension score</div>
       <div class="cq-dims">${dimBars}</div>
     </div>
     <div class="rp-section" style="margin-top:4px">
@@ -795,53 +968,6 @@ function renderBriefRight(num, b) {
   `;
 }
 
-// ── Library intel card ─────────────────────────────────────────────────
-function showLibraryCard(data) {
-  const card = document.getElementById('libCard');
-  if (!card) return;
-
-  const briefRows = Object.entries(data.briefs).map(([key, b], i) => {
-    const num = i + 1;
-    return `<div class="lib-brief">
-      <div class="lib-brief-num">0${num}</div>
-      <div class="lib-brief-body">
-        <div class="lib-brief-label">${String(b.pain_point || '').replace(/_/g, ' ')} · ${escHtml(b.combo || '')}</div>
-        <div class="lib-brief-meta">$${Number(b.pain_total_gmv || 0).toLocaleString()} pain point GMV · $${Number(b.combo_gmv || 0).toLocaleString()} combo GMV</div>
-      </div>
-      <div class="lib-brief-chk on" id="lchk${num}" onclick="toggleLibBrief(${num})"></div>
-    </div>`;
-  }).join('');
-
-  const archGroup = String(data.archetype_group || '').replace(/_/g, ' ');
-  card.innerHTML = `
-    <div class="lib-card-head">
-      <svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4.5" fill="#14a077" opacity=".2"/><circle cx="5" cy="5" r="2.5" fill="#14a077"/></svg>
-      Library intel — ${escHtml(archGroup)} · ${Math.round((data.confidence || 0) * 100)}% confidence
-    </div>
-    <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">Based on $1.73M GMV data. Uncheck any brief to use creator voice only for that slot.</div>
-    <div class="lib-row">${briefRows}</div>
-    <div class="lib-skip">
-      <div class="tog" id="skipLibTog" onclick="toggleSkipLib()"></div>
-      <span>Skip library entirely — pure voice + product for all briefs</span>
-    </div>
-  `;
-  card.classList.remove('skeleton');
-  card.classList.add('show');
-}
-
-function toggleLibBrief(num) {
-  const key = 'brief_' + num;
-  libSelections[key] = !libSelections[key];
-  const chk = document.getElementById('lchk' + num);
-  if (chk) chk.classList.toggle('on', libSelections[key]);
-}
-
-function toggleSkipLib() {
-  skipLibrary = !skipLibrary;
-  const tog = document.getElementById('skipLibTog');
-  if (tog) tog.classList.toggle('on', skipLibrary);
-}
-
 // ── Tab switching ──────────────────────────────────────────────────────
 function showBrief(idx) {
   currentBriefIdx = idx;
@@ -862,6 +988,13 @@ function pickStrategy(el, val) {
   selectedStrategy = val;
 }
 
+// ── Library toggle (simple ON/OFF) ─────────────────────────────────────
+function toggleLibrary() {
+  skipLibrary = !skipLibrary;
+  const tog = document.getElementById('libToggle');
+  if (tog) tog.classList.toggle('on', !skipLibrary);
+}
+
 // ── Copy helpers ───────────────────────────────────────────────────────
 function copyBrief(idx) {
   const b = currentBriefs[idx];
@@ -879,14 +1012,7 @@ function copyCreatorMsg(idx) {
   navigator.clipboard.writeText(text).then(() => showToast('Creator message copied!'));
 }
 
-// ── Overlay / ribbon helpers ───────────────────────────────────────────
-function showOverlay(title, sub) {
-  document.getElementById('ovt').textContent = title;
-  document.getElementById('ovs').textContent = sub;
-  document.getElementById('ov').classList.add('show');
-}
-function hideOverlay() { document.getElementById('ov').classList.remove('show'); }
-
+// ── Helpers ────────────────────────────────────────────────────────────
 function showToast(m) {
   const t = document.getElementById('toast');
   t.textContent = m;
@@ -901,6 +1027,8 @@ function showScreen(id) {
 
 function toS1() {
   if (eventSource) { eventSource.close(); eventSource = null; }
+  if (_etaInterval) clearInterval(_etaInterval);
+  if (_transcriptTimer) { clearTimeout(_transcriptTimer); _transcriptTimer = null; }
   jobId = null;
   showScreen('s1');
 }
@@ -913,27 +1041,6 @@ function escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-function updateRibbon(msg) {
-  const el = document.getElementById('ribTxt');
-  if (el) el.textContent = msg;
-}
-
-function setRibbonDone() {
-  const d = document.getElementById('rdot');
-  if (d) d.classList.add('done');
-}
-
-function updateRibbonSteps(stage) {
-  const stageMap = {'A': 0, 'B': 1, 'B1': 1, 'B2': 1, 'C': 2, 'D': 3, 'LIB': 4, 'INSPO': 4};
-  const idx = stageMap[stage] ?? -1;
-  const steps = document.querySelectorAll('.rs');
-  steps.forEach((s, i) => {
-    s.classList.remove('run', 'done');
-    if (i < idx) s.classList.add('done');
-    else if (i === idx) s.classList.add('run');
-  });
-}
-
 function sh(h) {
   document.getElementById('hi').value = h;
 }
@@ -943,7 +1050,7 @@ function toggleInspo(btn) {
   const hidden = panel.style.display === 'none' || panel.style.display === '';
   panel.style.display = hidden ? 'flex' : 'none';
   btn.textContent = hidden
-    ? '− Hide inspiration'
+    ? '\u2212 Hide inspiration'
     : '+ Add inspiration URLs or notes (optional)';
 }
 </script>
