@@ -465,10 +465,19 @@ def _build_user_prompt(brief_num: int, job: dict) -> str:
         lines += ["", f"REQUIRED COMBO FOR THIS BRIEF: {combo_override} (strategy forces this — do not deviate)"]
 
     if feedback.strip():
+        # Include previous brief's hook for context so the model knows what to fix
+        existing_briefs = job.get("briefs") or []
+        brief_map = {b.get("brief_num"): b for b in existing_briefs}
+        regen_num = job.get("regen_brief_num")
+        prev_brief = brief_map.get(regen_num, {}) if regen_num else {}
+        prev_hook = prev_brief.get("hook_text", "")
+
         lines += [
             "",
-            f"REGENERATION FEEDBACK (previous version was rejected — fix these issues):",
-            feedback.strip(),
+            "REGENERATION — previous version was rejected. Keep the same brief slot and strategy but fix these issues:",
+            f'Previous hook was: "{prev_hook}"' if prev_hook else "",
+            f"User feedback: {feedback.strip()}",
+            "Generate a meaningfully different version that directly addresses the feedback. Don't just rephrase.",
         ]
 
     lines += [
