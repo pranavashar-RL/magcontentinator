@@ -269,6 +269,7 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
   <div class="ribbon">
     <div class="rdot" id="rdot"></div>
     <span id="ribTxt">Starting analysis…</span>
+    <button class="btn btn-sec" id="skipBtn" onclick="skipToGenerate()" style="display:none;margin-left:10px;padding:4px 12px;font-size:11px">Taking long? → Use transcripts</button>
     <div class="rsteps">
       <div class="rs" id="rs0"></div>
       <div class="rs" id="rs1"></div>
@@ -421,6 +422,8 @@ function connectSSE() {
     const d = JSON.parse(e.data);
     updateRibbon('✓ @' + handle + ' analyzed — ' + d.videos_analyzed + ' videos, ' + d.archetype + ' archetype');
     setRibbonDone();
+    document.getElementById('skipBtn').style.display = 'none';
+    if (_skipBtnTimer) { clearTimeout(_skipBtnTimer); _skipBtnTimer = null; }
   });
 
   eventSource.addEventListener('complete', (e) => {
@@ -438,6 +441,28 @@ function connectSSE() {
     hideOverlay();
     showToast('Error: ' + (d.message || 'Something went wrong'));
   });
+}
+
+// ── Skip-to-generate (user override when preflight is slow) ────────────
+let _skipBtnTimer = null;
+function _scheduleSkipButton() {
+  if (_skipBtnTimer) clearTimeout(_skipBtnTimer);
+  document.getElementById('skipBtn').style.display = 'none';
+  // Show "Taking long?" button after 45s if preflight not complete
+  _skipBtnTimer = setTimeout(() => {
+    const ribbon = document.getElementById('ribTxt').textContent || '';
+    const isDone = ribbon.startsWith('✓');
+    if (!isDone) document.getElementById('skipBtn').style.display = '';
+  }, 45000);
+}
+function skipToGenerate() {
+  document.getElementById('skipBtn').style.display = 'none';
+  if (_skipBtnTimer) { clearTimeout(_skipBtnTimer); _skipBtnTimer = null; }
+  // Treat as if preflight completed — enable generate button
+  document.getElementById('rdot').classList.add('done');
+  updateRibbon('Skipped — using transcript analysis');
+  setRibbonDone();
+  showToast('Proceeding with transcripts already collected');
 }
 
 // ── Screen 2 transition — calls /api/start ─────────────────────────────
@@ -458,6 +483,7 @@ async function toS2() {
   document.getElementById('ribTxt').textContent = 'Starting analysis…';
   document.getElementById('rdot').classList.remove('done');
   document.querySelectorAll('.rs').forEach(s => s.classList.remove('run', 'done'));
+  _scheduleSkipButton();
 
   // Reset lib card
   const lc = document.getElementById('libCard');
