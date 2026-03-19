@@ -1,9 +1,12 @@
 """Pipeline orchestrator — manages job state and stage execution."""
-import asyncio
 import json
 import uuid
 import time
+import traceback
+import logging
 from typing import Callable
+
+logger = logging.getLogger(__name__)
 
 from stages import scraper, analyzer, profiler, voice, library, inspiration, generator
 
@@ -83,6 +86,8 @@ async def run_preflight(job_id: str, emit: Callable) -> None:
             ),
         })
     except Exception as e:
+        tb = traceback.format_exc()
+        logger.error("Preflight failed: %s\n%s", e, tb)
         job["status"] = "error"
         job["error"] = str(e)
         emit("error", {"message": str(e), "stage": "preflight"})
@@ -99,6 +104,8 @@ async def run_generation(job_id: str, emit: Callable) -> None:
         job["status"] = "complete"
         emit("complete", {"briefs": job["briefs"]})
     except Exception as e:
+        tb = traceback.format_exc()
+        logger.error("Generation failed: %s\n%s", e, tb)
         job["status"] = "error"
         job["error"] = str(e)
         emit("error", {"message": str(e), "stage": "generation"})
