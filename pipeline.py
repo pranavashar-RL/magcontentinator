@@ -42,7 +42,7 @@ def create_job(handle: str, inspiration_urls: list[str], inspiration_note: str) 
     return job_id
 
 
-def get_job(job_id: str) -> dict | None:
+def get_job(job_id: str) -> "dict | None":
     return JOBS.get(job_id)
 
 

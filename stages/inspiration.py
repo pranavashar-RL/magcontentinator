@@ -3,7 +3,7 @@ import os
 import asyncio
 import httpx
 import tempfile
-from typing import Callable
+from typing import Callable, Optional
 
 import google.generativeai as genai
 from openai import AsyncOpenAI
@@ -27,7 +27,7 @@ from the inspiration videos could work for THIS specific creator, and exactly ho
 Be specific. Name the techniques. Explain why they fit (or don't). 200-300 words max."""
 
 
-async def analyze_inspiration_video(url: str) -> str | None:
+async def analyze_inspiration_video(url: str) -> Optional[str]:
     """Download and analyze one inspiration video with Gemini Flash."""
     try:
         # Download video to a temp file
@@ -185,7 +185,7 @@ Flag any techniques that would feel inauthentic for this creator and explain why
                 {"role": "user", "content": user_message},
             ],
             temperature=0.7,
-            max_tokens=600,
+            max_completion_tokens=600,
         )
         digest = response.choices[0].message.content.strip()
     except Exception as exc:

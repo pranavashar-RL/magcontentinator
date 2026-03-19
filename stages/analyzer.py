@@ -193,7 +193,7 @@ async def analyze_video(video: dict, idx: int, total: int, emit: Callable) -> di
 
 
 async def run(job: dict, emit: Callable) -> None:
-    """Stage B: analyze videos sequentially (Gemini lock ensures 1 at a time)."""
+    """Stage B: analyze videos in parallel batches of 2 (semaphore-bounded)."""
     videos = job.get("videos", [])
     if not videos:
         emit("progress", {"stage": "B", "message": "No videos to analyze.", "done": True})
@@ -201,7 +201,7 @@ async def run(job: dict, emit: Callable) -> None:
         return
 
     total = len(videos)
-    emit("progress", {"stage": "B", "message": f"Starting Gemini analysis of {total} videos (sequential)..."})
+    emit("progress", {"stage": "B", "message": f"Starting Gemini analysis of {total} videos (2 at a time)..."})
 
     tasks = [analyze_video(video, i + 1, total, emit) for i, video in enumerate(videos)]
     results = await asyncio.gather(*tasks)

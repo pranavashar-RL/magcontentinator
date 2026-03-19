@@ -3,7 +3,7 @@ import os
 import asyncio
 import json
 import re
-from typing import Callable
+from typing import Callable, Optional
 
 from openai import AsyncOpenAI
 import sys
@@ -91,8 +91,8 @@ def _build_system_prompt(brief_num: int, job: dict) -> str:
     """Assemble the full system prompt for a given brief number."""
     profile: dict = job.get("profile") or {}
     voice: dict = job.get("voice") or {}
-    library_intel: dict | None = job.get("library_intel")
-    inspiration_digest: str | None = job.get("inspiration_digest")
+    library_intel: Optional[dict] = job.get("library_intel")
+    inspiration_digest: Optional[str] = job.get("inspiration_digest")
     library_selections: dict = job.get("library_selections") or {"brief_1": True, "brief_2": True, "brief_3": True}
     skip_library: bool = job.get("skip_library", False)
 
@@ -328,7 +328,7 @@ async def generate_brief(brief_num: int, job: dict, emit: Callable) -> dict:
             {"role": "user", "content": user_prompt},
         ],
         temperature=0.8,
-        max_tokens=2500,
+        max_completion_tokens=2500,
     )
 
     raw = response.choices[0].message.content or ""
@@ -342,7 +342,7 @@ async def generate_brief(brief_num: int, job: dict, emit: Callable) -> dict:
     return brief
 
 
-async def score_brief(brief_dict: dict, job: dict) -> dict:
+async def score_brief(brief_dict: dict) -> dict:
     """Call GPT-4o to CQ-score one brief. Returns the CQ score dict."""
     brief_json_str = json.dumps(brief_dict, indent=2)
     prompt = CQ_SCORE_PROMPT_TEMPLATE.format(brief_json=brief_json_str)
@@ -353,7 +353,7 @@ async def score_brief(brief_dict: dict, job: dict) -> dict:
             {"role": "user", "content": prompt},
         ],
         temperature=0.2,
-        max_tokens=1200,
+        max_completion_tokens=1200,
     )
 
     raw = response.choices[0].message.content or ""
@@ -393,7 +393,7 @@ async def run(job: dict, emit: Callable) -> None:
     Regen flow: if job["regen_brief_num"] is set, regenerate and re-score only that brief,
     preserving the other two in job["briefs"].
     """
-    regen_num: int | None = job.get("regen_brief_num")
+    regen_num: Optional[int] = job.get("regen_brief_num")
 
     emit("progress", {"stage": "GEN", "message": "Starting brief generation..."})
 
@@ -413,7 +413,7 @@ async def run(job: dict, emit: Callable) -> None:
             "stage": "GEN",
             "message": f"Re-scoring Brief {regen_num}...",
         })
-        cq = await score_brief(new_brief, job)
+        cq = await score_brief(new_brief)
         new_brief["cq"] = cq
 
         # Replace only the regenerated brief
@@ -458,15 +458,10 @@ async def run(job: dict, emit: Callable) -> None:
         })
 
         # Score all 3 in parallel (skip errored briefs)
-        score_tasks = [
-            score_brief(b, job) if not b.get("error") else asyncio.coroutine(lambda: {})()
-            for b in briefs
-        ]
-        # Use gather with proper coroutines
         async def _safe_score(brief: dict) -> dict:
             if brief.get("error"):
                 return {"cq_total": 0, "cq_grade": "D", "error": "brief generation failed"}
-            return await score_brief(brief, job)
+            return await score_brief(brief)
 
         score_results = await asyncio.gather(
             *[_safe_score(b) for b in briefs],

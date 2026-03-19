@@ -2,14 +2,15 @@ from fastapi import FastAPI, Request, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from typing import Optional
 import asyncio
 import json
 import os
 
-from pipeline import create_job, get_job, run_preflight, run_generation, format_sse, JOBS
 from dotenv import load_dotenv
+load_dotenv()  # MUST be before pipeline import — stages read os.getenv at module level
 
-load_dotenv()
+from pipeline import create_job, get_job, run_preflight, run_generation, format_sse, JOBS
 
 app = FastAPI(title="Magcontentinator")
 templates = Jinja2Templates(directory="templates")
@@ -25,7 +26,7 @@ class StartRequest(BaseModel):
 
 class GenerateRequest(BaseModel):
     intent: str = ""
-    strategy: str | None = None
+    strategy: Optional[str] = None
     library_selections: dict = {"brief_1": True, "brief_2": True, "brief_3": True}
     skip_library: bool = False
 
