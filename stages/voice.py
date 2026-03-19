@@ -141,11 +141,15 @@ async def run(job: dict, emit: Callable) -> None:
     if not profile:
         raise RuntimeError("Stage D: profile missing from job state — run Stage C first.")
 
-    # Count how many videos have usable transcripts
+    # Count how many videos have usable transcripts (new: full_transcript + script; old: transcript + audio)
     transcript_count = sum(
         1 for v in analyzed_videos
-        if (v.get("b1") or {}).get("transcript")
-        or any(b.get("audio") for b in (v.get("b1") or {}).get("beats", []))
+        if (v.get("b1") or {}).get("full_transcript")
+        or (v.get("b1") or {}).get("transcript")
+        or any(
+            b.get("script") or b.get("audio")
+            for b in (v.get("b1") or {}).get("beats", [])
+        )
     )
 
     if transcript_count == 0:
