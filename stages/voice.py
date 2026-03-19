@@ -45,7 +45,7 @@ def _build_user_prompt(analyzed_videos: list, profile: dict) -> str:
     # Sort videos by views descending, take top 5
     sorted_videos = sorted(
         analyzed_videos,
-        key=lambda v: v.get("views", 0),
+        key=lambda v: v.get("views") or 0,
         reverse=True,
     )
     top5 = sorted_videos[:5]
@@ -67,7 +67,7 @@ def _build_user_prompt(analyzed_videos: list, profile: dict) -> str:
             transcripts.append(
                 {
                     "video_id": v.get("video_id", ""),
-                    "views": v.get("views", 0),
+                    "views": v.get("views") or 0,
                     "hook_text": b1.get("hook_text", ""),
                     "transcript": transcript[:2000],  # cap at 2000 chars per video
                 }

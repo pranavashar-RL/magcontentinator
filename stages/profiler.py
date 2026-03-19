@@ -77,14 +77,14 @@ def _build_user_prompt(analyzed_videos: list) -> str:
     coa_count = sum(1 for v in valid if v["b1"].get("coa_lab_present") is True)
 
     # Pain point clarity average
-    clarity_scores = [v["b1"].get("pain_point_clarity", 0) for v in valid if v["b1"].get("pain_point_clarity")]
+    clarity_scores = [v["b1"].get("pain_point_clarity") or 0 for v in valid if v["b1"].get("pain_point_clarity")]
     avg_clarity = sum(clarity_scores) / len(clarity_scores) if clarity_scores else 0
 
     # Video durations
     durations = [
-        v["b1"].get("duration_seconds", 0)
+        v["b1"].get("duration_seconds") or 0
         for v in valid
-        if v["b1"].get("duration_seconds", 0) > 0
+        if (v["b1"].get("duration_seconds") or 0) > 0
     ]
     avg_duration = int(sum(durations) / len(durations)) if durations else 0
 
