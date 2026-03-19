@@ -130,7 +130,7 @@ def _gemini_analyze_sync(video_bytes: bytes, apify_transcript: str) -> dict:
 
 
 async def analyze_video(video: dict, idx: int, total: int, emit: Callable) -> dict:
-    """Download video, B1 with Gemini Flash, B2 with GPT-5.4."""
+    """Download + Gemini B1 + GPT B2, max 2 at a time (semaphore gates everything)."""
     video_id = video.get("video_id", f"video_{idx}")
     download_url = video.get("download_url") or video.get("url") or ""
 
@@ -138,23 +138,28 @@ async def analyze_video(video: dict, idx: int, total: int, emit: Callable) -> di
         logger.warning("Video %s has no download URL", video_id)
         return {**video, "b1": None, "b2": None, "error": "no_url"}
 
-    # Download
-    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: downloading..."})
-    try:
-        async with httpx.AsyncClient(timeout=120, follow_redirects=True) as http:
-            resp = await http.get(download_url)
-            resp.raise_for_status()
-            video_bytes = resp.content
-    except Exception as e:
-        logger.warning("Download failed for %s: %s", video_id, e)
-        return {**video, "b1": None, "b2": None, "error": f"download_failed: {e}"}
-
-    size_kb = len(video_bytes) // 1024
-    emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: {size_kb}KB downloaded. Uploading to Gemini..."})
-
-    # B1 — Gemini (max 2 concurrent via semaphore)
+    # Semaphore gates download + Gemini together — avoids hammering TikTok CDN
+    # with 10 simultaneous connections that trigger rate-limiting
     apify_transcript = video.get("transcript") or ""
     async with GEMINI_SEMAPHORE:
+        # Download
+        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: downloading..."})
+        try:
+            async with httpx.AsyncClient(timeout=120, follow_redirects=True) as http:
+                resp = await http.get(
+                    download_url,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; TikTok-video-downloader)"},
+                )
+                resp.raise_for_status()
+                video_bytes = resp.content
+        except Exception as e:
+            logger.warning("Download failed for %s: %s | url=%s", video_id, e, download_url[:80])
+            return {**video, "b1": None, "b2": None, "error": f"download_failed: {e}"}
+
+        size_kb = len(video_bytes) // 1024
+        emit("progress", {"stage": "B", "message": f"Video {idx}/{total}: {size_kb}KB downloaded. Uploading to Gemini..."})
+
+        # B1 — Gemini
         try:
             loop = asyncio.get_event_loop()
             b1 = await asyncio.wait_for(
