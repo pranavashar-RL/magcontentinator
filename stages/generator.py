@@ -64,6 +64,47 @@ ARCHETYPE_CONSTRAINTS = {
     },
 }
 
+STRATEGY_OVERRIDES = {
+    "sleep-score": {
+        "pain_point_override": "sleep",
+        "combo_override": "before_after × problem_solution",
+        "required_visual_proof": [
+            "SLEEP SCORE REVEAL: Show sleep tracker screenshot (WHOOP/Apple Watch/Oura/Fitbit)",
+            "BEFORE score: 32-60% sleep, red/yellow 'needs attention' indicators, 4-6 hrs recorded",
+            "AFTER score: 95-96% sleep, green 'OPTIMAL' indicators, 8+ hrs, 98-99% recovery",
+            "Beadlet close-up: show gummy with visible beadlets — this is the money shot",
+        ],
+        "required_education_section": """LIPOSOMAL EDUCATION — REQUIRED IN THIS BRIEF:
+The brief MUST explain WHY AshwaMag's magnesium glycinate is superior to regular magnesium glycinate.
+Teach it in this order (never skip or reorder):
+1. ANALOGY: "Most magnesium glycinate breaks down in your stomach before your body can use it"
+2. BEADLETS: "See these little beadlets inside the gummy? Each one wraps the magnesium in a fat layer"
+3. MECHANISM: "Stomach acid breaks down regular magnesium, but it can't break through fat — so the magnesium passes through intact"
+4. NAME IT: "That's what liposomal means — fat-wrapped delivery"
+5. PROOF: "You can literally see the difference" (reference the visible beadlets)
+NEVER lead with the word 'liposomal' — the mechanism earns the name.""",
+        "hook_style_override": "before_after — open with the sleep score shock (the 'before' number)",
+        "duration_target": "45-60s",
+        "beat_structure_note": """SLEEP SCORE BRIEF STRUCTURE (follow this arc):
+Beat 1 (0-4s): Show BEFORE sleep score — hook on the bad number ("Look at this — 38%")
+Beat 2 (4-8s): Validate the struggle ("That's not even passing. I was waking up at 2, 3AM...")
+Beat 3 (8-14s): Education hook ("Here's what I just found out. Not all mag glycinate is the same...")
+Beat 4 (14-22s): Liposomal mechanism with beadlet demo (fat protection analogy → show beadlets → name it)
+Beat 5 (22-28s): Reveal AFTER score ("Now look at this — 96%. Green. Optimal. 8 hours straight.")
+Beat 6 (28-35s): CTA with urgency (specific, not just "link in bio")""",
+    },
+    "gmv-max": {
+        "system_note": "Prioritize the highest GMV pain point × combo for this archetype group. Be explicit in why_this_works about the GMV data backing this choice.",
+    },
+    "creators-best": {
+        "system_note": "Lean into the creator's top-performing formats from their actual videos. Match the dominant combo from their video analysis.",
+    },
+    "custom": {
+        "skip_library": True,
+        "system_note": "The user's intent field is the primary driver. Ignore library combo suggestions. Build the brief around the angle described.",
+    },
+}
+
 BRIEF_TYPES = {
     1: "gmv_max",
     2: "archetype_best",
@@ -158,6 +199,10 @@ def _build_system_prompt(brief_num: int, job: dict) -> str:
     inspiration_digest: Optional[str] = job.get("inspiration_digest")
     library_selections: dict = job.get("library_selections") or {"brief_1": True, "brief_2": True, "brief_3": True}
     skip_library: bool = job.get("skip_library", False)
+    # Strategy-level skip_library (e.g. "custom" strategy)
+    strategy_cfg = STRATEGY_OVERRIDES.get(job.get("strategy", ""), {})
+    if strategy_cfg.get("skip_library"):
+        skip_library = True
 
     brief_key = f"brief_{brief_num}"
     use_library = (
@@ -245,6 +290,32 @@ def _build_system_prompt(brief_num: int, job: dict) -> str:
         library_block = lib_context if lib_context else "LIBRARY INTELLIGENCE: Not available for this brief."
     else:
         library_block = "LIBRARY INTELLIGENCE: Not used for this brief."
+
+    # 5c. Strategy overrides
+    strategy_overrides = STRATEGY_OVERRIDES.get(job.get("strategy", "creators-best"), {})
+    if strategy_overrides:
+        override_lines = []
+
+        if strategy_overrides.get("required_visual_proof"):
+            override_lines.append("REQUIRED VISUAL PROOF (mandatory for this strategy):")
+            for vp in strategy_overrides["required_visual_proof"]:
+                override_lines.append(f"  - {vp}")
+
+        if strategy_overrides.get("required_education_section"):
+            override_lines.append(strategy_overrides["required_education_section"])
+
+        if strategy_overrides.get("hook_style_override"):
+            override_lines.append(f"HOOK STYLE REQUIRED: {strategy_overrides['hook_style_override']}")
+
+        if strategy_overrides.get("beat_structure_note"):
+            override_lines.append(strategy_overrides["beat_structure_note"])
+
+        if strategy_overrides.get("system_note"):
+            override_lines.append(f"STRATEGY NOTE: {strategy_overrides['system_note']}")
+
+        strategy_override_block = "STRATEGY OVERRIDES — REQUIRED:\n" + "\n".join(override_lines) if override_lines else ""
+    else:
+        strategy_override_block = ""
 
     # 6. Inspiration digest
     if inspiration_digest:
@@ -335,6 +406,8 @@ Add "validation_passed": true to your JSON to confirm you completed this check."
         "",
         library_block,
         "",
+        strategy_override_block,
+        "",
         inspiration_block,
         "",
         compliance_block,
@@ -382,6 +455,14 @@ def _build_user_prompt(brief_num: int, job: dict) -> str:
             f"For Brief 3 (Creator's Own Best): ground this in the creator's dominant pain point "
             f"'{creator_pain}' — this came from their actual content, not the library.",
         ]
+
+    pain_override = STRATEGY_OVERRIDES.get(job.get("strategy", ""), {}).get("pain_point_override")
+    if pain_override:
+        lines += ["", f"REQUIRED PAIN POINT FOR THIS BRIEF: {pain_override} (strategy forces this — do not deviate)"]
+
+    combo_override = STRATEGY_OVERRIDES.get(job.get("strategy", ""), {}).get("combo_override")
+    if combo_override:
+        lines += ["", f"REQUIRED COMBO FOR THIS BRIEF: {combo_override} (strategy forces this — do not deviate)"]
 
     if feedback.strip():
         lines += [
