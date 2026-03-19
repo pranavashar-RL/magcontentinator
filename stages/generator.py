@@ -33,28 +33,38 @@ OUTPUT FORMAT — return ONLY a single valid JSON object with these exact fields
 {
   "brief_num": <1|2|3>,
   "brief_type": "<gmv_max|archetype_best|creators_own>",
-  "hook_text": "<exact first-3-second hook line — what the creator says or shows in the first 3 seconds>",
+  "hook_text": "<exact first-3-second hook line — verbatim words the creator says>",
+  "hook_visual": "<exact shot description for the opening frame — setting, framing, props, body language, text overlay>",
   "pain_point": "<pain point addressed>",
   "combo": "<hook_type × narrative_type>",
   "beats": [
     {
-      "time": "<e.g. 0-3s>",
+      "time": "<e.g. 0-4s>",
       "beat_num": <integer>,
-      "action": "<what the creator does/says>",
-      "text_overlay": "<on-screen text, or null if none>",
-      "audio": "<background music/sound cue, or null>",
+      "action": "<precise camera direction and physical action — what creator does, how they move, shot type, any props used, jump cuts>",
+      "script": "<VERBATIM words the creator speaks in this beat — full sentences, their exact voice, nothing paraphrased>",
+      "text_overlay": "<exact on-screen text including any emoji, capitalization style — or null>",
+      "music": "<background music/sound cue or transition sound — or null>",
       "product_integration": <null | "first_appearance" | "on_screen" | "demo" | "verbal_only">
     }
   ],
+  "full_script": "<the complete verbatim script end to end — every word the creator says from hook to CTA, as one block of text>",
+  "narrative_flow": "<2-3 sentence summary of the complete narrative arc — how it opens, builds, and closes>",
   "total_duration": "<e.g. 60-65s>",
   "key_claims": ["<3-4 product claims used — must be from VALID CLAIMS only>"],
-  "visual_proof_elements": ["<what transformation/proof visuals to include>"],
-  "cta": "<exact CTA line the creator says at the end>",
-  "why_this_works": "<2-3 sentence rationale grounded in library data and creator fit>",
-  "adoption_pct": "<estimated % of creators in this archetype group who successfully execute this format, e.g. '68%'>"
+  "visual_proof_elements": ["<specific proof visuals — beadlet close-up, COA PIP, review screenshot, comparison graphic, etc>"],
+  "cta": "<exact verbatim CTA line the creator says at the end>",
+  "production_notes": "<1 paragraph of practical production direction: where to film, what to wear, exact props needed, camera setup, editing style, text overlay style — everything a creator needs to shoot this without asking a single question>",
+  "why_this_works": "<2-3 sentence rationale grounded in library GMV data and creator fit — name the combo, name the data>",
+  "adoption_pct": "<estimated % of creators in this archetype group who can execute this format>"
 }
 
-CRITICAL: Return ONLY the JSON. No markdown fences, no explanation text before or after.
+CRITICAL RULES FOR SCRIPT WRITING:
+- Every "script" field must be VERBATIM — write exactly what they say, in their voice, using their signature phrases
+- The "full_script" field must be a complete readable script from first word to last
+- Do NOT write "[Creator explains X]" — write the actual words they would say
+- Match the creator's vocabulary, energy, pacing, and signature phrases exactly
+- CRITICAL: Return ONLY the JSON. No markdown fences, no explanation text before or after.
 """.strip()
 
 CQ_SCORE_PROMPT_TEMPLATE = """You are a TikTok content quality scorer for supplement brands.
@@ -328,7 +338,7 @@ async def generate_brief(brief_num: int, job: dict, emit: Callable) -> dict:
             {"role": "user", "content": user_prompt},
         ],
         temperature=0.8,
-        max_completion_tokens=2500,
+        max_completion_tokens=5000,
     )
 
     raw = response.choices[0].message.content or ""
