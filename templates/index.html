@@ -138,10 +138,10 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
 .cq-bw{flex:1;height:3px;background:var(--cream2);border-radius:2px;overflow:hidden}
 .cq-bf{height:100%;background:var(--mint);border-radius:2px}
 .cq-dv{font-size:10px;font-weight:600;color:var(--mint);width:24px;text-align:right}
-.regen-block{background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px}
+.regen-block{background:var(--white);border:1px solid var(--border);border-radius:9px;padding:16px}
 .regen-l{font-size:13px;font-weight:500;color:var(--ink3);margin-bottom:8px}
 .regen-row{display:flex;gap:6px;align-items:flex-end}
-.regen-row textarea{flex:1;min-height:52px;font-size:12px}
+.regen-row textarea{flex:1;min-height:72px;font-size:12px}
 .ov{display:none;position:fixed;inset:0;background:rgba(248,245,240,.9);backdrop-filter:blur(6px);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:14px}
 .ov.show{display:flex}
 .spin{width:32px;height:32px;border:2px solid var(--cream2);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite}
@@ -190,7 +190,7 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
     <a class="logo-wrap" href="#" onclick="return false;">
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
         <rect width="26" height="26" rx="6" fill="#0d3d28"/>
-        <text x="13" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#17e79c">M</text>
+        <path d="M8 18V9l4 6 4-6v9" stroke="#17e79c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
       <div class="logo-wordmark">
         <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
@@ -206,18 +206,18 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
     <div class="how-steps">
       <div class="how-step">
         <div class="how-num">Step 1</div>
-        <div class="how-title">Enter a creator</div>
-        <div class="how-desc">TikTok handle — we pull video data + build their voice profile</div>
+        <div class="how-title">🔍 Enter a creator</div>
+        <div class="how-desc">We analyze their top videos and build a voice profile in ~3 min</div>
       </div>
       <div class="how-step">
         <div class="how-num">Step 2</div>
-        <div class="how-title">Set your intent</div>
-        <div class="how-desc">Pick a strategy and describe the angle you want to hit</div>
+        <div class="how-title">🎯 Set your intent</div>
+        <div class="how-desc">Pick a strategy and describe the angle — we handle the rest</div>
       </div>
       <div class="how-step">
         <div class="how-num">Step 3</div>
-        <div class="how-title">Get briefs + scores</div>
-        <div class="how-desc">3 scored, beat-by-beat TikTok briefs ready to send</div>
+        <div class="how-title">📋 Get briefs + scores</div>
+        <div class="how-desc">3 scored, beat-by-beat TikTok briefs ready to send to the creator</div>
       </div>
     </div>
 
@@ -239,7 +239,7 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
       <button onclick="toggleInspo(this)" class="btn btn-ghost" style="font-size:11px;color:var(--ink4);padding:4px 0;width:100%;text-align:left">
         + Add inspiration URLs or notes <span style="opacity:.5">(optional)</span>
       </button>
-      <div id="inspoPanel" style="display:none;margin-top:10px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 15px;display:none;flex-direction:column;gap:10px">
+      <div id="inspoPanel" style="display:none;flex-direction:column;gap:10px;margin-top:10px;background:var(--cream);border:1px solid var(--border);border-radius:10px;padding:14px 15px">
         <div class="inspo-fl">Reference URLs <span>(comma-separated TikTok links)</span></div>
         <input type="text" id="inspoUrls" placeholder="https://tiktok.com/@creator/video/..." style="padding-left:13px;font-size:13px">
         <div class="inspo-fl" style="margin-top:6px">Notes <span>(angles, tone, vibes to borrow)</span></div>
@@ -257,7 +257,7 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
     <a class="logo-wrap" href="#" onclick="toS1();return false;">
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
         <rect width="26" height="26" rx="6" fill="#0d3d28"/>
-        <text x="13" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#17e79c">M</text>
+        <path d="M8 18V9l4 6 4-6v9" stroke="#17e79c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
       <div class="logo-wordmark">
         <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
@@ -322,7 +322,7 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
     <div class="lib-card" id="libCard"></div>
 
     <div style="font-size:11px;color:var(--ink4);text-align:center;line-height:1.7">
-      Analysis takes ~3–4 min · briefs built from Gemini video analysis + voice profile + library patterns
+      Video analysis takes ~2–3 min · briefs built from visual AI analysis + voice fingerprint + GMV library patterns
     </div>
   </div>
 </div>
@@ -335,7 +335,7 @@ textarea{padding:12px 13px;font-size:13px;line-height:1.6;resize:none}
     <a class="logo-wrap" href="#" onclick="toS1();return false;">
       <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
         <rect width="26" height="26" rx="6" fill="#0d3d28"/>
-        <text x="13" y="18" text-anchor="middle" font-family="Georgia,serif" font-size="14" font-weight="700" fill="#17e79c">M</text>
+        <path d="M8 18V9l4 6 4-6v9" stroke="#17e79c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
       <div class="logo-wordmark">
         <span class="lw-mag">Mag</span><span class="lw-cont">contentinator</span>
@@ -630,7 +630,7 @@ function renderBriefLeft(num, b) {
     const badge = isProd ? `<br><span class="pbadge">&#x2B21; Product on screen</span>` : '';
     const musicNote = beat.music ? `<br><span style="font-size:10px;color:var(--ink4)">♪ ${escHtml(beat.music)}</span>` : '';
     return `<tr${rowClass}>
-      <td class="t-time">${escHtml(beat.time || '')}</td>
+      <td class="t-time">${escHtml(beat.time_range || beat.time || '')}</td>
       <td class="t-act">${escHtml(beat.action || '')}${badge}${musicNote}</td>
       <td class="t-ov">${escHtml(beat.text_overlay || '—')}</td>
       <td class="t-au">${escHtml(beat.script || beat.audio || '—')}</td>
@@ -734,7 +734,8 @@ function renderBriefRight(num, b) {
       <button class="btn btn-gold" style="width:100%;justify-content:flex-start;font-size:12px;margin-top:6px" onclick="copyCreatorMsg(${num - 1})">Copy message to creator</button>
     </div>
     <div class="regen-block">
-      <div class="regen-l" style="font-size:14px;font-weight:600;color:var(--ink2)">Feedback — give notes and regenerate</div>
+      <div class="regen-l" style="font-size:15px;font-weight:600;color:var(--ink);letter-spacing:-.01em">Feedback</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:8px;margin-top:-4px">Add notes below and regenerate this brief</div>
       <div class="regen-row">
         <textarea id="rta${num}" placeholder="e.g. 'Gym setting, 35s, drop the beadlet explanation'"></textarea>
       </div>
@@ -813,7 +814,7 @@ function pickStrategy(el, val) {
 function copyBrief(idx) {
   const b = currentBriefs[idx];
   if (!b) return;
-  const beats = (b.beats || []).map(beat => `${beat.time}: ${beat.action} | ${beat.text_overlay || ''} | ${beat.script || beat.audio || ''}`).join('\n');
+  const beats = (b.beats || []).map(beat => `${beat.time_range || beat.time}: ${beat.action} | ${beat.text_overlay || ''} | ${beat.script || beat.audio || ''}`).join('\n');
   const text = `BRIEF ${idx + 1}: ${b.hook_text}\n\nCombo: ${b.combo}\nPain point: ${b.pain_point}\nDuration: ${b.total_duration}\n\n${b.narrative_flow ? 'NARRATIVE:\n' + b.narrative_flow + '\n\n' : ''}BEAT TABLE:\n${beats}\n\nFULL SCRIPT:\n${b.full_script || ''}\n\nPRODUCTION NOTES:\n${b.production_notes || ''}\n\nWHY IT WORKS:\n${b.why_this_works}`;
   navigator.clipboard.writeText(text).then(() => showToast('Brief copied!'));
 }
@@ -821,8 +822,8 @@ function copyBrief(idx) {
 function copyCreatorMsg(idx) {
   const b = currentBriefs[idx];
   if (!b) return;
-  const beats = (b.beats || []).map(beat => `${beat.time}: ${beat.script || beat.audio || beat.action}`).join('\n');
-  const text = `Hey! Here's a brief for AshwaMag Gummies:\n\nHook: "${b.hook_text}"\n\nFull script:\n${b.full_script || beats}\n\nBeat-by-beat direction:\n${(b.beats || []).map(beat => `${beat.time}: ${beat.action}`).join('\n')}\n\nCTA: ${b.cta || 'Tap the cart below!'}`;
+  const beats = (b.beats || []).map(beat => `${beat.time_range || beat.time}: ${beat.script || beat.audio || beat.action}`).join('\n');
+  const text = `Hey! Here's a brief for AshwaMag Gummies:\n\nHook: "${b.hook_text}"\n\nFull script:\n${b.full_script || beats}\n\nBeat-by-beat direction:\n${(b.beats || []).map(beat => `${beat.time_range || beat.time}: ${beat.action}`).join('\n')}\n\nCTA: ${b.cta || 'Tap the cart below!'}`;
   navigator.clipboard.writeText(text).then(() => showToast('Creator message copied!'));
 }
 
