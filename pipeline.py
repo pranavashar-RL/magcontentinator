@@ -54,26 +54,26 @@ async def run_preflight(job_id: str, emit: Callable) -> None:
     job = JOBS[job_id]
     job["status"] = "running_preflight"
     try:
-        await emit("progress", {"stage": "scraper", "message": "Fetching creator videos..."})
+        emit("progress", {"stage": "scraper", "message": "Fetching creator videos..."})
         await scraper.run(job, emit)
 
-        await emit("progress", {"stage": "analyzer", "message": "Analyzing video content..."})
+        emit("progress", {"stage": "analyzer", "message": "Analyzing video content..."})
         await analyzer.run(job, emit)
 
-        await emit("progress", {"stage": "profiler", "message": "Building creator profile..."})
+        emit("progress", {"stage": "profiler", "message": "Building creator profile..."})
         await profiler.run(job, emit)
 
-        await emit("progress", {"stage": "voice", "message": "Fingerprinting creator voice..."})
+        emit("progress", {"stage": "voice", "message": "Fingerprinting creator voice..."})
         await voice.run(job, emit)
 
-        await emit("progress", {"stage": "library", "message": "Fetching library intelligence..."})
+        emit("progress", {"stage": "library", "message": "Fetching library intelligence..."})
         await library.run(job, emit)
 
-        await emit("progress", {"stage": "inspiration", "message": "Processing inspiration URLs..."})
+        emit("progress", {"stage": "inspiration", "message": "Processing inspiration URLs..."})
         await inspiration.run(job, emit)
 
         job["status"] = "awaiting_intent"
-        await emit("preflight_complete", {
+        emit("preflight_complete", {
             "archetype": job["profile"]["archetype"] if job["profile"] else "unknown",
             "archetype_confidence": job["profile"]["archetype_confidence"] if job["profile"] else 0,
             "videos_analyzed": len(job["analyzed_videos"]),
@@ -85,7 +85,7 @@ async def run_preflight(job_id: str, emit: Callable) -> None:
     except Exception as e:
         job["status"] = "error"
         job["error"] = str(e)
-        await emit("error", {"message": str(e), "stage": "preflight"})
+        emit("error", {"message": str(e), "stage": "preflight"})
 
 
 async def run_generation(job_id: str, emit: Callable) -> None:
@@ -93,12 +93,12 @@ async def run_generation(job_id: str, emit: Callable) -> None:
     job = JOBS[job_id]
     job["status"] = "running_generation"
     try:
-        await emit("progress", {"stage": "generator", "message": "Generating content briefs..."})
+        emit("progress", {"stage": "generator", "message": "Generating content briefs..."})
         await generator.run(job, emit)
 
         job["status"] = "complete"
-        await emit("complete", {"briefs": job["briefs"]})
+        emit("complete", {"briefs": job["briefs"]})
     except Exception as e:
         job["status"] = "error"
         job["error"] = str(e)
-        await emit("error", {"message": str(e), "stage": "generation"})
+        emit("error", {"message": str(e), "stage": "generation"})

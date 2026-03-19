@@ -37,14 +37,19 @@ class RegenRequest(BaseModel):
 # ── Helper ──
 
 def make_emit(job_id: str):
-    """Return an async emit callable bound to a job."""
-    async def emit(event_type: str, data: dict):
+    """Return a synchronous emit callable bound to a job.
+    Uses put_nowait so stages don't need to await it."""
+    def emit(event_type: str, data: dict):
         event_str = format_sse(event_type, data)
-        job = JOBS[job_id]
+        job = JOBS.get(job_id)
+        if not job:
+            return
         job["events"].append(event_str)
-        # Notify any waiting SSE subscribers
         if "_queue" in job:
-            await job["_queue"].put(event_str)
+            try:
+                job["_queue"].put_nowait(event_str)
+            except Exception:
+                pass
     return emit
 
 
