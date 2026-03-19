@@ -46,9 +46,9 @@ def make_emit(job_id: str):
         if not job:
             return
         job["events"].append(event_str)
-        if "_queue" in job:
+        for q in list(job.get("_queues", {}).values()):
             try:
-                job["_queue"].put_nowait(event_str)
+                q.put_nowait(event_str)
             except Exception:
                 pass
     return emit
@@ -85,9 +85,13 @@ async def stream(job_id: str):
         if job["status"] in ("complete", "error"):
             return
 
-        # Set up a queue for new events emitted after connection
+        # Set up a queue for new events emitted after connection.
+        # Use the queue object itself as its key to avoid race conditions
+        # when a client reconnects before the old generator's finally runs.
         queue: asyncio.Queue = asyncio.Queue()
-        job["_queue"] = queue
+        queues = job.setdefault("_queues", {})
+        queue_key = id(queue)
+        queues[queue_key] = queue
 
         try:
             while True:
@@ -95,13 +99,13 @@ async def stream(job_id: str):
                     event = await asyncio.wait_for(queue.get(), timeout=30)
                     yield event
                     # Stop streaming once a terminal event is sent
-                    if '"complete"' in event or '"error"' in event:
+                    if 'event: complete\n' in event or 'event: error\n' in event:
                         break
                 except asyncio.TimeoutError:
                     # Send a keepalive comment to prevent connection timeout
                     yield ": keepalive\n\n"
         finally:
-            job.pop("_queue", None)
+            job.get("_queues", {}).pop(queue_key, None)
 
     return StreamingResponse(
         event_generator(),

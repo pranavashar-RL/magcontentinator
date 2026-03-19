@@ -410,6 +410,7 @@ function connectSSE() {
 
   eventSource.addEventListener('complete', (e) => {
     const d = JSON.parse(e.data);
+    _clearGenerationPoller();
     currentBriefs = d.briefs;
     renderBriefs(d.briefs);
     showScreen('s3');
@@ -479,11 +480,48 @@ async function generate() {
         skip_library: skipLibrary
       })
     });
-    // Results come via SSE 'complete' event
+    // Results come via SSE 'complete' event — poll as fallback if SSE drops
+    _startGenerationPoller();
   } catch(err) {
     hideOverlay();
     showToast('Error: ' + err.message);
   }
+}
+
+let _genPollTimer = null;
+function _startGenerationPoller() {
+  _clearGenerationPoller();
+  let attempts = 0;
+  async function poll() {
+    attempts++;
+    if (attempts > 60) { hideOverlay(); showToast('Generation timed out'); return; }
+    try {
+      const r = await fetch(`/api/job/${jobId}`);
+      const d = await r.json();
+      if (d.status === 'complete' && d.briefs) {
+        _clearGenerationPoller();
+        if (document.getElementById('ov').classList.contains('show')) {
+          // SSE didn't deliver — use polled result
+          currentBriefs = d.briefs;
+          renderBriefs(d.briefs);
+          showScreen('s3');
+          hideOverlay();
+        }
+      } else if (d.status === 'error') {
+        _clearGenerationPoller();
+        hideOverlay();
+        showToast('Error: ' + (d.error || 'Generation failed'));
+      } else {
+        _genPollTimer = setTimeout(poll, 5000);
+      }
+    } catch(_) {
+      _genPollTimer = setTimeout(poll, 5000);
+    }
+  }
+  _genPollTimer = setTimeout(poll, 8000); // first check after 8s
+}
+function _clearGenerationPoller() {
+  if (_genPollTimer) { clearTimeout(_genPollTimer); _genPollTimer = null; }
 }
 
 // ── Regen single brief ─────────────────────────────────────────────────
