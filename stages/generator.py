@@ -92,6 +92,11 @@ Beat 3 (8-14s): Education hook ("Here's what I just found out. Not all mag glyci
 Beat 4 (14-22s): Liposomal mechanism with beadlet demo (fat protection analogy → show beadlets → name it)
 Beat 5 (22-28s): Reveal AFTER score ("Now look at this — 96%. Green. Optimal. 8 hours straight.")
 Beat 6 (28-35s): CTA with urgency (specific, not just "link in bio")""",
+        "brief_descriptions_override": {
+            1: "Sleep Score Reveal — Variant A (Score-First): Open on the BEFORE score number as the hook. Most direct, highest urgency. Lead with the shocking stat, earn the education.",
+            2: "Sleep Score Reveal — Variant B (Struggle-First): Open on the physical symptom (waking up at 2AM, brain fog, groggy mornings) THEN reveal the bad sleep score as the proof. More relatable entry point.",
+            3: "Sleep Score Reveal — Variant C (Education-First): Open with the magnesium twist ('Here's what I just found out — not all magnesium glycinate is the same') THEN connect the mechanism to the sleep score transformation. Contrarian/educational hook.",
+        },
     },
     "gmv-max": {
         "system_note": "Prioritize the highest GMV pain point × combo for this archetype group. Be explicit in why_this_works about the GMV data backing this choice.",
@@ -432,7 +437,10 @@ def _build_user_prompt(brief_num: int, job: dict) -> str:
     profile: dict = job.get("profile") or {}
 
     brief_type = BRIEF_TYPES[brief_num]
-    brief_desc = BRIEF_TYPE_DESCRIPTIONS[brief_num]
+    # Check for strategy-level brief description override (e.g. sleep-score forces 3 variants of same theme)
+    strategy_cfg = STRATEGY_OVERRIDES.get(strategy, {})
+    brief_desc_overrides = strategy_cfg.get("brief_descriptions_override", {})
+    brief_desc = brief_desc_overrides.get(brief_num) or BRIEF_TYPE_DESCRIPTIONS[brief_num]
 
     dominant_pain_points = profile.get("dominant_pain_points") or []
     creator_pain = dominant_pain_points[0] if dominant_pain_points else "sleep"
