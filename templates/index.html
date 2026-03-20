@@ -811,8 +811,6 @@ async function regen(briefIdx) {
   if (bl) bl.innerHTML = `<div class="skel-wrap"><div class="skel-status"><div class="skel-spin"></div>Regenerating · applying feedback</div><div class="skel-line skel-title"></div><div class="skel-line skel-block"></div></div>`;
 
   regenInProgress = briefIdx;
-  // SSE is closed after initial generation — reconnect so complete event arrives
-  if (!eventSource) connectSSE();
   try {
     await fetch(`/api/regen/${jobId}/${briefNum}`, {
       method: 'POST',
